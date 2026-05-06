@@ -253,34 +253,36 @@ export default function StudentDetailPage() {
               {payments.length === 0 ? (
                 <p className="text-sm text-dark-muted text-center py-8">Aucun paiement enregistré</p>
               ) : (
-                <div className="space-y-2">
-                  {payments.slice((pagePay-1)*itemsPerPage, pagePay*itemsPerPage).map(p => (
-                    <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-surface-50 hover:bg-surface-100 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-accent-green/10 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 1v8m0 0v1" /></svg>
+                <>
+                  <div className="space-y-2">
+                    {payments.slice((pagePay-1)*itemsPerPage, pagePay*itemsPerPage).map(p => (
+                      <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-surface-50 hover:bg-surface-100 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-accent-green/10 flex items-center justify-center">
+                            <svg className="w-4 h-4 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 1v8m0 0v1" /></svg>
+                          </div>
+                          <div>
+                            <span className="text-sm font-bold text-accent-green">{formatCurrency(p.amount)}</span>
+                            <span className="text-xs text-dark-muted ml-2">{p.payment_method}</span>
+                            {p.notes && <p className="text-xs text-dark-muted">{p.notes}</p>}
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-sm font-bold text-accent-green">{formatCurrency(p.amount)}</span>
-                          <span className="text-xs text-dark-muted ml-2">{p.payment_method}</span>
-                          {p.notes && <p className="text-xs text-dark-muted">{p.notes}</p>}
+                        <div className="flex items-center gap-3">
+                          <p className="text-xs text-dark-muted">{formatDate(p.payment_date)}</p>
+                          <button onClick={() => handleDeletePayment(p)} className="p-1 rounded-lg hover:bg-accent-red/10 text-dark-muted hover:text-accent-red transition-colors">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <p className="text-xs text-dark-muted">{formatDate(p.payment_date)}</p>
-                        <button onClick={() => handleDeletePayment(p)} className="p-1 rounded-lg hover:bg-accent-red/10 text-dark-muted hover:text-accent-red transition-colors">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Pagination
-                  currentPage={pagePay}
-                  totalItems={payments.length}
-                  itemsPerPage={itemsPerPage}
-                  onPageChange={setPagePay}
-                />
+                    ))}
+                  </div>
+                  <Pagination
+                    currentPage={pagePay}
+                    totalItems={payments.length}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={setPagePay}
+                  />
+                </>
               )}
             </div>
           )}
@@ -292,29 +294,31 @@ export default function StudentDetailPage() {
               {attendance.length === 0 ? (
                 <p className="text-sm text-dark-muted text-center py-8">Aucune présence enregistrée</p>
               ) : (
-                <div className="space-y-2">
-                  {attendance.slice((pageAtt-1)*itemsPerPage, pageAtt*itemsPerPage).map(a => (
-                    <div key={a.id} className="flex items-center justify-between p-3 rounded-xl bg-surface-50">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${a.scan_out_time ? 'bg-dark-muted' : 'bg-accent-green'}`} />
-                        <div>
-                          <span className="text-sm text-dark">{formatDate(a.date || a.scan_in_time)}</span>
-                          <p className="text-xs text-dark-muted">
-                            {a.scan_in_time ? new Date(a.scan_in_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
-                            {a.scan_out_time ? ` → ${new Date(a.scan_out_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` : ''}
-                          </p>
+                <>
+                  <div className="space-y-2">
+                    {attendance.slice((pageAtt-1)*itemsPerPage, pageAtt*itemsPerPage).map(a => (
+                      <div key={a.id} className="flex items-center justify-between p-3 rounded-xl bg-surface-50">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${a.scan_out_time ? 'bg-dark-muted' : 'bg-accent-green'}`} />
+                          <div>
+                            <span className="text-sm text-dark">{formatDate(a.date || a.scan_in_time)}</span>
+                            <p className="text-xs text-dark-muted">
+                              {a.scan_in_time ? new Date(a.scan_in_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                              {a.scan_out_time ? ` → ${new Date(a.scan_out_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` : ''}
+                            </p>
+                          </div>
                         </div>
+                        <Badge variant={a.scan_out_time ? 'gray' : 'success'}>{a.scan_out_time ? 'Sorti' : 'Présent'}</Badge>
                       </div>
-                      <Badge variant={a.scan_out_time ? 'gray' : 'success'}>{a.scan_out_time ? 'Sorti' : 'Présent'}</Badge>
-                    </div>
-                  ))}
-                </div>
-                <Pagination
-                  currentPage={pageAtt}
-                  totalItems={attendance.length}
-                  itemsPerPage={itemsPerPage}
-                  onPageChange={setPageAtt}
-                />
+                    ))}
+                  </div>
+                  <Pagination
+                    currentPage={pageAtt}
+                    totalItems={attendance.length}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={setPageAtt}
+                  />
+                </>
               )}
             </div>
           )}
@@ -342,24 +346,26 @@ export default function StudentDetailPage() {
               {stages.length === 0 ? (
                 <p className="text-sm text-dark-muted text-center py-8">Aucun stage enregistré</p>
               ) : (
-                <div className="space-y-2">
-                  {stages.slice((pageStages-1)*itemsPerPage, pageStages*itemsPerPage).map(s => (
-                    <div key={s.id} className="flex items-center gap-3 p-3 rounded-xl bg-surface-50 hover:bg-surface-100 transition-colors">
-                      <Badge variant={TYPE_BADGE[s.type] || 'gray'}>{s.type}</Badge>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-dark truncate">{s.title}</p>
-                        <p className="text-xs text-dark-muted">{formatDate(s.scheduled_date)}{s.scheduled_time ? ` ${s.scheduled_time}` : ''} · {formatDuration(s.duration_minutes)}</p>
+                <>
+                  <div className="space-y-2">
+                    {stages.slice((pageStages-1)*itemsPerPage, pageStages*itemsPerPage).map(s => (
+                      <div key={s.id} className="flex items-center gap-3 p-3 rounded-xl bg-surface-50 hover:bg-surface-100 transition-colors">
+                        <Badge variant={TYPE_BADGE[s.type] || 'gray'}>{s.type}</Badge>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-dark truncate">{s.title}</p>
+                          <p className="text-xs text-dark-muted">{formatDate(s.scheduled_date)}{s.scheduled_time ? ` ${s.scheduled_time}` : ''} · {formatDuration(s.duration_minutes)}</p>
+                        </div>
+                        <Badge variant={STATUS_STAGE_BADGE[s.status] || 'gray'}>{s.status}</Badge>
                       </div>
-                      <Badge variant={STATUS_STAGE_BADGE[s.status] || 'gray'}>{s.status}</Badge>
-                    </div>
-                  ))}
-                </div>
-                <Pagination
-                  currentPage={pageStages}
-                  totalItems={stages.length}
-                  itemsPerPage={itemsPerPage}
-                  onPageChange={setPageStages}
-                />
+                    ))}
+                  </div>
+                  <Pagination
+                    currentPage={pageStages}
+                    totalItems={stages.length}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={setPageStages}
+                  />
+                </>
               )}
             </div>
           )}
