@@ -31,7 +31,6 @@ function verifyToken(token) {
 
 function getTokenFromRequest(req) {
   const cookieStr = req.headers.get('cookie') || '';
-  console.log('DEBUG: Cookie header:', cookieStr);
   const match = cookieStr.match(/auth_token=([^;]+)/);
   if (match) return match[1];
   const auth = req.headers.get('authorization') || '';

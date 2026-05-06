@@ -3,10 +3,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 
-// ── DEV ONLY — set to false before deploying ──────────────────────────────────
-const DEV_BYPASS_AUTH = false;
-// ─────────────────────────────────────────────────────────────────────────────
-
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -18,16 +14,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     setMounted(true);
-    // ── DEV bypass ───────────────────────────────────────────────────────────
-    if (DEV_BYPASS_AUTH) {
-      console.log('DEBUG: Redirecting to super-admin...');
-      window.location.href = '/super-admin';
-      return;
-    }
-    // ────────────────────────────────────────────────────────────────────────
   }, [router]);
 
-  if (DEV_BYPASS_AUTH) return null;
 
 
 

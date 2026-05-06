@@ -2,22 +2,11 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// ── DEV ONLY — set to false before deploying ──────────────────────────────────
-const DEV_BYPASS_AUTH = false;
-// ─────────────────────────────────────────────────────────────────────────────
-
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // ── DEV bypass ─────────────────────────────────────────────────────────
-    if (DEV_BYPASS_AUTH) {
-      console.log('DEBUG: Redirecting to admin...');
-      window.location.href = '/admin';
-      return;
-    }
-    // ───────────────────────────────────────────────────────────────────────
-    // Middleware handles the redirect based on role
+// Middleware handles the redirect based on role
   }, [router]);
 
 

@@ -11,11 +11,7 @@ function setSecurityHeaders(response) {
 }
 
 export async function middleware(request) {
-  // ── DEV bypass ──────────────────────────────────────────────────────────────
-  const DEV_BYPASS_AUTH = false; 
-  if (DEV_BYPASS_AUTH) return NextResponse.next();
-  // ────────────────────────────────────────────────────────────────────────────
-  const { pathname } = request.nextUrl;
+const { pathname } = request.nextUrl;
 
   // Allow static assets
   if (pathname.startsWith('/_next') || pathname.startsWith('/favicon') || pathname.startsWith('/fonts')) {

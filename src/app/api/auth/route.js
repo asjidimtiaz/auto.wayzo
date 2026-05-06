@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { getAdminByUsername, initDb, getAutoEcoleBySlug, getAllAutoEcoles } from '@/lib/db';
+import { getAdminByUsername, initDb } from '@/lib/db';
 import { generateToken, isAuthenticated } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rateLimit';
 
@@ -43,8 +43,8 @@ export async function POST(req) {
 
     response.cookies.set('auth_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'strict',
       maxAge: 86400,
       path: '/',
     });
@@ -57,28 +57,6 @@ export async function POST(req) {
 }
 
 export async function GET(req) {
-  // ── DEV bypass ─────────────────────────────────────────────────────────────
-  const DEV_BYPASS_AUTH = false; 
-  if (DEV_BYPASS_AUTH) {
-    const slug = req.headers.get('x-tenant-slug') || 'admin';
-    let aeId = null;
-    try {
-      await initDb();
-      const ae = await getAutoEcoleBySlug(slug);
-      if (ae) {
-        aeId = ae.id;
-      } else {
-        const all = await getAllAutoEcoles();
-        if (all.length > 0) aeId = all[0].id;
-      }
-    } catch {}
-
-    return NextResponse.json({
-      authenticated: true,
-      user: { id: 1, username: 'dev', role: 'admin', auto_ecole_id: aeId, slug },
-    });
-  }
-  // ───────────────────────────────────────────────────────────────────────────
   try {
     const user = isAuthenticated(req);
     if (!user) return NextResponse.json({ authenticated: false }, { status: 401 });
@@ -101,7 +79,7 @@ export async function DELETE() {
   const response = NextResponse.json({ success: true });
   response.cookies.set('auth_token', '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,
     sameSite: 'lax',
     maxAge: 0,
     path: '/',

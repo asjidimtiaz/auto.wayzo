@@ -13,7 +13,6 @@ function getPool() {
   if (pool) return pool;
   const url = process.env.DATABASE_URL;
   const hostname = url ? new URL(url).hostname : 'N/A';
-  console.log('DEBUG: Initializing DB pool with URL:', url ? 'PRESENT' : 'MISSING', 'Host:', hostname);
   const ssl = process.env.DATABASE_SSL !== 'false' && { rejectUnauthorized: false };
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
