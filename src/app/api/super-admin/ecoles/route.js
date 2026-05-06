@@ -25,8 +25,9 @@ export async function POST(req) {
     const ae = await db.createAutoEcole(data);
     await db.createSettingsForAutoEcole(ae.id, { school_name: data.name });
 
-    if (data.adminUsername && data.adminPassword) {
-      await db.createTenantAdmin(ae.id, data.adminUsername, data.adminPassword);
+    if (data.adminUsername) {
+      const password = data.adminPassword || `${data.adminUsername}123`;
+      await db.createTenantAdmin(ae.id, data.adminUsername, password);
     }
 
     return NextResponse.json({ success: true, id: ae.id });

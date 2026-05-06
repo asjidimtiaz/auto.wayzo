@@ -137,6 +137,43 @@ export default function SettingsPage() {
           </div>
         </Card>
 
+        {/* Compte & Sécurité */}
+        <Card className="mb-6">
+          <Card.Header title={<div className="flex items-center gap-2"><span className="text-primary-500"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg></span>Compte & Sécurité</div>} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="form-label">Nouveau mot de passe</label>
+              <input 
+                type="password" 
+                placeholder="Laisser vide pour ne pas changer"
+                className="form-input"
+                onChange={e => setForm(f => ({ ...f, new_password: e.target.value }))}
+              />
+              <p className="mt-2 text-xs text-dark-muted">Min. 6 caractères pour plus de sécurité.</p>
+            </div>
+            <div className="flex items-end pb-1">
+              <Button 
+                type="button" 
+                variant="secondary"
+                onClick={async () => {
+                  if (!form.new_password || form.new_password.length < 6) {
+                    notify.error('Le mot de passe doit faire au moins 6 caractères');
+                    return;
+                  }
+                  try {
+                    await api.auth.updateProfile({ password: form.new_password });
+                    notify.success('Mot de passe mis à jour');
+                  } catch {
+                    notify.error('Erreur lors de la mise à jour');
+                  }
+                }}
+              >
+                Mettre à jour le mot de passe
+              </Button>
+            </div>
+          </div>
+        </Card>
+
         <div className="flex justify-end">
           <Button type="submit" loading={saving} size="lg">Enregistrer les paramètres</Button>
         </div>
@@ -144,3 +181,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+

@@ -44,6 +44,7 @@ const api = {
     login: (credentials) => apiJSON('/api/auth', 'POST', credentials),
     logout: () => apiFetch('/api/auth', { method: 'DELETE' }),
     check: () => apiFetch('/api/auth'),
+    updateProfile: (data) => apiJSON('/api/auth/profile', 'PUT', data),
   },
   students: {
     getAll: () => apiFetch('/api/students'),

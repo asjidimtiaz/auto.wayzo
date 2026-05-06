@@ -61,8 +61,6 @@ export default function NewEcolePage() {
     if (!form.slug.trim()) errs.slug = 'Le slug est requis';
     else if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(form.slug)) errs.slug = 'Le slug doit contenir uniquement des lettres minuscules, chiffres et tirets';
     if (!form.adminUsername.trim()) errs.adminUsername = "Le nom d'utilisateur admin est requis";
-    if (!form.adminPassword) errs.adminPassword = 'Le mot de passe est requis';
-    else if (form.adminPassword.length < 6) errs.adminPassword = 'Le mot de passe doit contenir au moins 6 caracteres';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -280,16 +278,12 @@ export default function NewEcolePage() {
             </svg>
             Administrateur
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nom d'utilisateur <span className="text-red-500">*</span></label>
               <input type="text" value={form.adminUsername} onChange={(e) => updateField('adminUsername', e.target.value)} placeholder="admin" className={inputClass('adminUsername')} />
               {errors.adminUsername && <p className="mt-1 text-xs text-red-600">{errors.adminUsername}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe <span className="text-red-500">*</span></label>
-              <input type="password" value={form.adminPassword} onChange={(e) => updateField('adminPassword', e.target.value)} placeholder="Minimum 6 caracteres" className={inputClass('adminPassword')} />
-              {errors.adminPassword && <p className="mt-1 text-xs text-red-600">{errors.adminPassword}</p>}
+              <p className="mt-2 text-[10px] text-gray-400 italic">Le mot de passe par défaut sera : nom_d_utilisateur123</p>
             </div>
           </div>
         </div>

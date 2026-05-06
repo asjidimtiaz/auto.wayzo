@@ -172,8 +172,6 @@ export default function EditEcolePage() {
   function validateNewAdmin() {
     const errs = {};
     if (!newAdmin.username.trim()) errs.username = "Le nom d'utilisateur est requis";
-    if (!newAdmin.password) errs.password = 'Le mot de passe est requis';
-    else if (newAdmin.password.length < 6) errs.password = 'Min. 6 caracteres';
     setAdminErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -205,28 +203,6 @@ export default function EditEcolePage() {
     }
   }
 
-  async function handleResetPassword(adminId) {
-    if (!resetPassword || resetPassword.length < 6) { notify.error('Min. 6 caracteres'); return; }
-    setResettingPassword(true);
-    try {
-      const res = await fetch(`/api/super-admin/admins?id=${adminId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: resetPassword }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Erreur');
-      }
-      notify.success('Mot de passe reinitialise');
-      setResetAdminId(null);
-      setResetPassword('');
-    } catch (e) {
-      notify.error(e.message);
-    } finally {
-      setResettingPassword(false);
-    }
-  }
 
   async function handleDeleteAdmin(admin) {
     const confirmed = await confirmDelete(admin.username);
@@ -443,7 +419,7 @@ export default function EditEcolePage() {
         {showAddAdmin && (
           <form onSubmit={handleAddAdmin} className="mb-6 p-4 bg-gray-50 rounded-lg shadow-soft">
             <h3 className="text-sm font-medium text-gray-700 mb-3">Nouvel administrateur</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <div>
                 <label className="block text-xs font-medium text-dark-muted mb-1">Nom d'utilisateur <span className="text-red-500">*</span></label>
                 <input
@@ -454,17 +430,7 @@ export default function EditEcolePage() {
                   className={`w-full h-9 px-3 text-sm border rounded-lg bg-white focus:ring-2 focus:ring-primary-500/20 ${adminErrors.username ? 'border-red-300' : 'border-gray-300 focus:border-primary-500'}`}
                 />
                 {adminErrors.username && <p className="mt-1 text-xs text-red-600">{adminErrors.username}</p>}
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-dark-muted mb-1">Mot de passe <span className="text-red-500">*</span></label>
-                <input
-                  type="password"
-                  value={newAdmin.password}
-                  onChange={(e) => { setNewAdmin((p) => ({ ...p, password: e.target.value })); if (adminErrors.password) setAdminErrors((p) => ({ ...p, password: '' })); }}
-                  placeholder="Min. 6 caracteres"
-                  className={`w-full h-9 px-3 text-sm border rounded-lg bg-white focus:ring-2 focus:ring-primary-500/20 ${adminErrors.password ? 'border-red-300' : 'border-gray-300 focus:border-primary-500'}`}
-                />
-                {adminErrors.password && <p className="mt-1 text-xs text-red-600">{adminErrors.password}</p>}
+                <p className="mt-2 text-[10px] text-gray-400 italic">Le mot de passe par défaut sera : nom_d_utilisateur123</p>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-4">
@@ -492,38 +458,9 @@ export default function EditEcolePage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {resetAdminId === admin.id ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="password"
-                        value={resetPassword}
-                        onChange={(e) => setResetPassword(e.target.value)}
-                        placeholder="Nouveau mot de passe"
-                        className="h-8 w-40 px-2 text-xs border border-gray-300 rounded-lg bg-white"
-                        autoFocus
-                      />
-                      <button onClick={() => handleResetPassword(admin.id)} disabled={resettingPassword} className="px-2 py-1 text-xs font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-700 disabled:opacity-50">
-                        {resettingPassword ? '...' : 'OK'}
-                      </button>
-                      <button onClick={() => { setResetAdminId(null); setResetPassword(''); }} className="px-2 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                        Annuler
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => { setResetAdminId(admin.id); setResetPassword(''); }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                        title="Reinitialiser le mot de passe"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
-                        Mot de passe
-                      </button>
-                      <button onClick={() => handleDeleteAdmin(admin)} className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 hover:bg-red-50" title="Supprimer">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    </>
-                  )}
+                  <button onClick={() => handleDeleteAdmin(admin)} className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 hover:bg-red-50" title="Supprimer">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
                 </div>
               </div>
             ))}
