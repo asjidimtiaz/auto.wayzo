@@ -168,6 +168,12 @@ const api = {
     generate: (studentId, overrideData) =>
       apiJSON('/api/contrat-avancement', 'POST', { studentId, overrideData }),
   },
+  expenses: {
+    getAll: () => apiFetch('/api/expenses'),
+    getStats: () => apiFetch('/api/expenses?stats=1'),
+    create: (data) => apiJSON('/api/expenses', 'POST', data),
+    delete: (id) => apiFetch(`/api/expenses?id=${id}`, { method: 'DELETE' }),
+  },
   // Super-admin
   superAdmin: {
     getDashboard: () => apiFetch('/api/super-admin/dashboard'),

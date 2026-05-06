@@ -1289,6 +1289,48 @@ process.on('beforeExit', async () => {
   if (pool) { await pool.end(); pool = null; }
 });
 
+async function getAllExpenses(tenantId) {
+  return query('SELECT * FROM expenses WHERE tenant_id = $1 ORDER BY date DESC', [tenantId]);
+}
+
+async function createExpense(tenantId, data) {
+  const { category, subcategory, amount, date, notes } = data;
+  return queryOne(
+    'INSERT INTO expenses (tenant_id, category, subcategory, amount, date, notes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+    [tenantId, category, subcategory, amount, date || new Date(), notes]
+  );
+}
+
+async function deleteExpense(tenantId, id) {
+  return query('DELETE FROM expenses WHERE id = $1 AND tenant_id = $2', [id, tenantId]);
+}
+
+async function getExpenseStats(tenantId) {
+  const byCategory = await query(`
+    SELECT category, SUM(amount) as total 
+    FROM expenses 
+    WHERE tenant_id = $1 
+    GROUP BY category
+  `, [tenantId]);
+
+  const monthly = await query(`
+    SELECT TO_CHAR(date, 'YYYY-MM') as month, SUM(amount) as total 
+    FROM expenses 
+    WHERE tenant_id = $1 
+    GROUP BY month 
+    ORDER BY month DESC 
+    LIMIT 12
+  `, [tenantId]);
+
+  const total = await queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE tenant_id = $1', [tenantId]);
+
+  return {
+    byCategory,
+    monthly,
+    total: parseFloat(total.total)
+  };
+}
+
 module.exports = {
   getDb, initDb, query, withTransaction,
   getAdminByUsername,
@@ -1312,4 +1354,5 @@ module.exports = {
   getDashboardStats, getSettings, updateSettings,
   createIncident, getIncidentsByStudent, getAllIncidents, getUnresolvedIncidents,
   resolveIncident, deleteIncident, getStudentIncidentsCount,
+  getAllExpenses, createExpense, deleteExpense, getExpenseStats,
 };
