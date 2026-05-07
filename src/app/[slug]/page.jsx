@@ -146,8 +146,8 @@ export default function DashboardPage() {
       {/* Revenue gradient cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
         <StatCard title="Revenus Totaux" value={loading ? null : formatCurrency(stats?.totalRevenue)} loading={loading} color="success" gradient />
-        <StatCard title="Revenus du Mois" value={loading ? null : formatCurrency(stats?.monthlyRevenue)} loading={loading} color="primary" gradient />
-        <StatCard title="Paiements en Attente" value={loading ? null : (stats?.pendingPayments ?? 0)} loading={loading} color="warning" gradient />
+        <StatCard title="Dépenses Totales" value={loading ? null : formatCurrency(stats?.totalExpenses)} loading={loading} color="accent-red" gradient />
+        <StatCard title="Bénéfice Net" value={loading ? null : formatCurrency(stats?.profit)} loading={loading} color="primary" gradient />
       </div>
 
       {/* Session time cards */}

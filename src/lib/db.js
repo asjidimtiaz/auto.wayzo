@@ -1230,6 +1230,7 @@ async function getDashboardStats(autoEcoleId) {
     totalRow, activeRow, licensesRow, attendanceRow,
     revenueRow, monthlyRow, pendingRow,
     reminders, recentStudents, recentPayments,
+    totalExpensesRow, monthlyExpensesRow,
   ] = await Promise.all([
     queryOne('SELECT COUNT(*) as count FROM students WHERE auto_ecole_id = $1', [autoEcoleId]),
     queryOne("SELECT COUNT(*) as count FROM students WHERE status = 'En formation' AND auto_ecole_id = $1", [autoEcoleId]),
@@ -1241,6 +1242,8 @@ async function getDashboardStats(autoEcoleId) {
     query('SELECT * FROM students WHERE reminder_date IS NOT NULL AND reminder_date >= CURRENT_DATE AND auto_ecole_id = $1 ORDER BY reminder_date LIMIT 5', [autoEcoleId]),
     query('SELECT * FROM students WHERE auto_ecole_id = $1 ORDER BY created_at DESC LIMIT 5', [autoEcoleId]),
     query('SELECT p.*, s.full_name FROM payments p JOIN students s ON p.student_id = s.id WHERE p.auto_ecole_id = $1 ORDER BY p.created_at DESC LIMIT 5', [autoEcoleId]),
+    queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE tenant_id = $1', [autoEcoleId]),
+    queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE date >= $1 AND tenant_id = $2', [monthStart, autoEcoleId]),
   ]);
 
   const [alertsCounts, todayStages] = await Promise.all([
@@ -1248,13 +1251,19 @@ async function getDashboardStats(autoEcoleId) {
     getTodayStages(autoEcoleId),
   ]);
 
+  const totalRevenue = parseFloat(revenueRow.total);
+  const totalExpenses = parseFloat(totalExpensesRow.total);
+
   return {
     totalStudents: parseInt(totalRow.count),
     activeStudents: parseInt(activeRow.count),
     licensesObtained: parseInt(licensesRow.count),
     todayAttendance: parseInt(attendanceRow.count),
-    totalRevenue: parseFloat(revenueRow.total),
+    totalRevenue,
     monthlyRevenue: parseFloat(monthlyRow.total),
+    totalExpenses,
+    monthlyExpenses: parseFloat(monthlyExpensesRow.total),
+    profit: totalRevenue - totalExpenses,
     pendingPayments: parseInt(pendingRow.count),
     upcomingReminders: reminders,
     recentStudents,
