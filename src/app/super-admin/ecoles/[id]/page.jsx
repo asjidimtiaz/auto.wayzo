@@ -61,7 +61,7 @@ export default function EditEcolePage() {
       try {
         const [ecoleRes, adminsRes] = await Promise.all([
           fetch(`/api/super-admin/ecoles?id=${id}`),
-          fetch(`/api/super-admin/admins?ecoleId=${id}`),
+          fetch(`/api/super-admin/admins?autoEcoleId=${id}`),
         ]);
         if (!ecoleRes.ok) throw new Error("Auto-ecole introuvable");
         const ecole = await ecoleRes.json();
@@ -184,7 +184,7 @@ export default function EditEcolePage() {
       const res = await fetch('/api/super-admin/admins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ auto_ecole_id: Number(id), username: newAdmin.username, password: newAdmin.password }),
+        body: JSON.stringify({ autoEcoleId: Number(id), username: newAdmin.username, password: newAdmin.password }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -194,7 +194,7 @@ export default function EditEcolePage() {
       setNewAdmin({ username: '', password: '' });
       setAdminErrors({});
       setShowAddAdmin(false);
-      const adminsRes = await fetch(`/api/super-admin/admins?ecoleId=${id}`);
+      const adminsRes = await fetch(`/api/super-admin/admins?autoEcoleId=${id}`);
       if (adminsRes.ok) setAdmins(await adminsRes.json());
     } catch (e) {
       notify.error(e.message);

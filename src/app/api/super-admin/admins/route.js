@@ -9,7 +9,7 @@ export async function GET(req) {
     const ctx = requireSuperAdmin(req);
     if (!ctx) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     const { searchParams } = new URL(req.url);
-    const autoEcoleId = searchParams.get('autoEcoleId');
+    const autoEcoleId = searchParams.get('autoEcoleId') || searchParams.get('ecoleId');
     if (!autoEcoleId) return NextResponse.json({ error: 'autoEcoleId requis' }, { status: 400 });
     return NextResponse.json(await db.getAdminsByAutoEcole(Number(autoEcoleId)));
   } catch (err) {
@@ -22,7 +22,9 @@ export async function POST(req) {
   try {
     const ctx = requireSuperAdmin(req);
     if (!ctx) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    const { autoEcoleId, username, password } = await req.json();
+    const data = await req.json();
+    const autoEcoleId = data.autoEcoleId || data.auto_ecole_id || data.ecoleId;
+    const { username, password } = data;
     if (!autoEcoleId || !username) return NextResponse.json({ error: 'Données manquantes' }, { status: 400 });
     
     // Default password if not provided (e.g., username123)

@@ -12,7 +12,6 @@ let pool = null;
 function getPool() {
   if (pool) return pool;
   const url = process.env.DATABASE_URL;
-  const hostname = url ? new URL(url).hostname : 'N/A';
   const ssl = process.env.DATABASE_SSL !== 'false' && { rejectUnauthorized: false };
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -276,6 +275,19 @@ async function initDb() {
     )
   `);
 
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS expenses (
+      id SERIAL PRIMARY KEY,
+      tenant_id INT NOT NULL REFERENCES auto_ecoles(id) ON DELETE CASCADE,
+      category VARCHAR(100) NOT NULL,
+      subcategory VARCHAR(100),
+      amount DECIMAL(10,2) NOT NULL,
+      date DATE NOT NULL DEFAULT CURRENT_DATE,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Migrations for existing tables
   const tables = ['offers', 'students', 'attendance', 'payments', 'payment_schedules', 'stages', 'invoices', 'documents', 'incidents'];
   for (const t of tables) {
@@ -440,6 +452,7 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_stages_date_status ON stages(scheduled_date, status);
     CREATE INDEX IF NOT EXISTS idx_payment_schedules_due ON payment_schedules(due_date, paid);
     CREATE INDEX IF NOT EXISTS idx_students_reminder ON students(reminder_date);
+    CREATE INDEX IF NOT EXISTS idx_expenses_tenant ON expenses(tenant_id);
   `);
 }
 
@@ -449,7 +462,8 @@ async function getAllAutoEcoles() {
   return query(`
     SELECT ae.*,
       (SELECT COUNT(*) FROM students WHERE auto_ecole_id = ae.id) as student_count,
-      (SELECT COUNT(*) FROM admins WHERE auto_ecole_id = ae.id) as admin_count
+      (SELECT COUNT(*) FROM admins WHERE auto_ecole_id = ae.id) as admin_count,
+      (SELECT username FROM admins WHERE auto_ecole_id = ae.id ORDER BY id LIMIT 1) as admin_username
     FROM auto_ecoles ae ORDER BY ae.created_at DESC
   `);
 }

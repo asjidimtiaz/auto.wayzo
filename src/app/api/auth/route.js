@@ -6,6 +6,8 @@ import { checkRateLimit } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
+const secureCookie = process.env.NODE_ENV === 'production';
+
 export async function POST(req) {
   try {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
@@ -25,6 +27,14 @@ export async function POST(req) {
     }
 
     const user = await getAdminByUsername(username);
+    console.log('Login attempt:', { username, receivedPassword: password });
+    if (user) {
+      const match = await bcrypt.compare(password, user.password);
+      console.log('User found, match:', match);
+    } else {
+      console.log('User not found');
+    }
+
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return NextResponse.json({ error: 'Identifiants invalides' }, { status: 401 });
     }
@@ -43,7 +53,7 @@ export async function POST(req) {
 
     response.cookies.set('auth_token', token, {
       httpOnly: true,
-      secure: true,
+      secure: secureCookie,
       sameSite: 'strict',
       maxAge: 86400,
       path: '/',
@@ -79,7 +89,7 @@ export async function DELETE() {
   const response = NextResponse.json({ success: true });
   response.cookies.set('auth_token', '', {
     httpOnly: true,
-    secure: true,
+    secure: secureCookie,
     sameSite: 'lax',
     maxAge: 0,
     path: '/',

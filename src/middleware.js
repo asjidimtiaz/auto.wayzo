@@ -23,6 +23,7 @@ const { pathname } = request.nextUrl;
     pathname === '/login' ||
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/ecoles/') ||
+    pathname.startsWith('/api/health') ||
     pathname.startsWith('/api/init')
   ) {
     return setSecurityHeaders(NextResponse.next());
