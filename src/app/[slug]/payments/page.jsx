@@ -122,56 +122,61 @@ export default function PaymentsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-         {/* Row 1 */}
-         <div className="bg-white rounded-3xl shadow-soft p-6 flex items-center justify-between border border-surface-100">
-            <div>
-              <p className="text-xs font-bold text-dark-muted uppercase tracking-wider mb-2">Total des paiements</p>
-              <p className="text-2xl font-bold text-dark">{formatCurrency(methodStats.Total)}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+         {/* Total */}
+         <div className="bg-white rounded-2xl shadow-soft p-5 border border-surface-100 transition-all hover:shadow-md">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-500">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <span className="text-[10px] font-bold text-dark-muted uppercase tracking-widest bg-surface-50 px-2 py-0.5 rounded-full">Global</span>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-surface-100 flex items-center justify-center">
-              <svg className="w-6 h-6 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </div>
+            <p className="text-xs font-semibold text-dark-muted mb-1">Total Paiements</p>
+            <p className="text-xl font-bold text-dark">{formatCurrency(methodStats.Total)}</p>
          </div>
 
-         <div className="bg-accent-green/5 rounded-3xl shadow-soft p-6 flex items-center justify-between border border-accent-green/10">
-            <div>
-              <p className="text-xs font-bold text-accent-green uppercase tracking-wider mb-2">Espèces</p>
-              <p className="text-2xl font-bold text-accent-green">{formatCurrency(methodStats.Cash)}</p>
+         {/* Cash */}
+         <div className="bg-white rounded-2xl shadow-soft p-5 border border-surface-100 transition-all hover:shadow-md">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-accent-green/10 flex items-center justify-center text-accent-green">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-accent-green/10 flex items-center justify-center">
-              <svg className="w-6 h-6 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-            </div>
+            <p className="text-xs font-semibold text-dark-muted mb-1">Espèces</p>
+            <p className="text-xl font-bold text-dark">{formatCurrency(methodStats.Cash)}</p>
          </div>
 
-         <div className="bg-accent-blue/5 rounded-3xl shadow-soft p-6 flex items-center justify-between border border-accent-blue/10">
-            <div>
-              <p className="text-xs font-bold text-accent-blue uppercase tracking-wider mb-2">Virements</p>
-              <p className="text-2xl font-bold text-accent-blue">{formatCurrency(methodStats.Transfer)}</p>
+         {/* Transfer */}
+         <div className="bg-white rounded-2xl shadow-soft p-5 border border-surface-100 transition-all hover:shadow-md">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-accent-blue/10 flex items-center justify-center text-accent-blue">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-accent-blue/10 flex items-center justify-center">
-              <svg className="w-6 h-6 text-accent-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-            </div>
+            <p className="text-xs font-semibold text-dark-muted mb-1">Virements</p>
+            <p className="text-xl font-bold text-dark">{formatCurrency(methodStats.Transfer)}</p>
          </div>
 
-         <div className="bg-primary-50 rounded-3xl shadow-soft p-6 flex items-center justify-between border border-primary-100">
-            <div>
-              <p className="text-xs font-bold text-primary-600 uppercase tracking-wider mb-2">Chèques</p>
-              <p className="text-2xl font-bold text-primary-600">{formatCurrency(methodStats.Cheque)}</p>
+         {/* Cheque */}
+         <div className="bg-white rounded-2xl shadow-soft p-5 border border-surface-100 transition-all hover:shadow-md">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-500">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-primary-100 flex items-center justify-center">
-              <svg className="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-            </div>
+            <p className="text-xs font-semibold text-dark-muted mb-1">Chèques</p>
+            <p className="text-xl font-bold text-dark">{formatCurrency(methodStats.Cheque)}</p>
          </div>
 
-         <div className="bg-accent-yellow/5 rounded-3xl shadow-soft p-6 flex items-center justify-between border border-accent-yellow/10">
-            <div>
-              <p className="text-xs font-bold text-accent-yellow uppercase tracking-wider mb-2">TPE</p>
-              <p className="text-2xl font-bold text-accent-yellow">{formatCurrency(methodStats.TPE)}</p>
+         {/* TPE */}
+         <div className="bg-white rounded-2xl shadow-soft p-5 border border-surface-100 transition-all hover:shadow-md">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-accent-yellow/10 flex items-center justify-center text-accent-yellow">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-accent-yellow/10 flex items-center justify-center">
-              <svg className="w-6 h-6 text-accent-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-            </div>
+            <p className="text-xs font-semibold text-dark-muted mb-1">TPE</p>
+            <p className="text-xl font-bold text-dark">{formatCurrency(methodStats.TPE)}</p>
          </div>
       </div>
 
@@ -180,35 +185,40 @@ export default function PaymentsPage() {
         <Card.Header 
           title={
             <div className="flex items-center gap-2 text-dark font-bold">
-              <svg className="w-5 h-5 text-accent-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+              <div className="w-8 h-8 rounded-lg bg-accent-yellow/10 flex items-center justify-center">
+                <svg className="w-4 h-4 text-accent-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+              </div>
               Solde Impayé
             </div>
           }
           action={
-            <Badge variant="warning" className="!bg-accent-yellow/10 !text-accent-yellow border-none px-3 py-1">
+            <div className="flex items-center gap-2 px-3 py-1 bg-surface-100 rounded-full text-[10px] font-bold text-dark-muted uppercase tracking-wider">
               {unpaidStudents.length} étudiants
-            </Badge>
+            </div>
           }
         />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-2">
-          {unpaidStudents.slice(0, 6).map((s) => {
+        <div className="flex overflow-x-auto pb-4 gap-4 snap-x custom-scrollbar p-2">
+          {unpaidStudents.map((s) => {
             const progress = s.total > 0 ? (s.paid / s.total) * 100 : 0;
             return (
-              <div key={s.id} className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-dark truncate pr-2 uppercase">{s.full_name}</h3>
+              <div key={s.id} className="min-w-[280px] flex-shrink-0 bg-white p-4 rounded-2xl border border-surface-100 shadow-soft snap-start hover:shadow-md transition-all">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-dark truncate pr-2">{s.full_name}</h3>
                   <span className="text-sm font-bold text-accent-red">-{formatCurrency(s.remaining)}</span>
                 </div>
-                <div className="w-full h-2 bg-surface-100 rounded-full overflow-hidden">
-                   <div className="h-full bg-accent-yellow rounded-full" style={{ width: `${progress}%` }} />
+                <div className="w-full h-1.5 bg-surface-50 rounded-full overflow-hidden mb-2">
+                   <div className="h-full bg-accent-red/60 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
                 </div>
-                <div className="flex items-center justify-between text-[10px] font-bold text-dark-muted">
-                  <span>{formatCurrency(s.paid)} / {formatCurrency(s.total)}</span>
-                  <span>({Math.round(progress)}%)</span>
+                <div className="flex items-center justify-between text-[10px] font-medium text-dark-muted">
+                  <span>Payé: {formatCurrency(s.paid)}</span>
+                  <span>{Math.round(progress)}%</span>
                 </div>
               </div>
             );
           })}
+          {unpaidStudents.length === 0 && (
+             <p className="text-sm text-dark-muted italic py-4">Aucun impayé</p>
+          )}
         </div>
         {unpaidStudents.length > 6 && (
           <div className="mt-6 pt-4 border-t border-surface-100 text-center">
@@ -220,18 +230,16 @@ export default function PaymentsPage() {
       </Card>
 
       {/* Filters */}
-      <Card className="mb-4" padding="sm">
-        <div className="flex flex-wrap gap-3">
-          <div className="flex-1 min-w-[200px] relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher par étudiant..." className="form-input pl-9" />
-          </div>
-          <select value={filterMethod} onChange={e => setFilterMethod(e.target.value)} className="form-select w-auto">
-            <option value="">Tous les modes</option>
-            {PAYMENT_METHODS.map(m => <option key={m} value={m}>{METHOD_LABEL[m]}</option>)}
-          </select>
+      <div className="flex flex-wrap items-center gap-3 bg-white p-2 rounded-2xl border border-surface-200">
+        <div className="flex-1 min-w-[200px] relative">
+          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un paiement..." className="w-full pl-10 pr-4 py-2 bg-surface-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-primary-500/20 outline-none transition-all" />
         </div>
-      </Card>
+        <select value={filterMethod} onChange={e => setFilterMethod(e.target.value)} className="bg-surface-50 border-none px-4 py-2 rounded-xl text-sm font-medium text-dark-muted focus:ring-2 focus:ring-primary-500/20 outline-none cursor-pointer">
+          <option value="">Tous les modes</option>
+          {PAYMENT_METHODS.map(m => <option key={m} value={m}>{METHOD_LABEL[m]}</option>)}
+        </select>
+      </div>
 
       {/* Table */}
       <Card padding="none">

@@ -153,30 +153,32 @@ export default function DashboardPage() {
       {/* Session time cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
         {[
-          { label: "Temps Aujourd'hui", key: 'day', color: 'accent-green' },
-          { label: 'Temps cette Semaine', key: 'week', color: 'primary-500' },
-          { label: 'Temps ce Mois', key: 'month', color: 'accent-pink' },
-        ].map(({ label, key, color }) => (
-          <div key={key} className={`bg-white rounded-2xl shadow-soft p-5 border-l-4 border-${color}`}>
-            <p className="text-sm text-dark-muted mb-2">{label}</p>
-            {loading ? (
-              <SkeletonBlock width="w-24" height="h-6" />
-            ) : (
-              <>
-                <div className="flex items-baseline gap-2">
-                  <span className={`text-lg font-bold text-${color}`}>
-                    {formatDuration(sessionStats?.[key]?.completed_minutes)}
-                  </span>
-                  <span className="text-sm text-dark-muted">terminé</span>
-                </div>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-sm font-medium text-primary-500">
-                    {formatDuration(sessionStats?.[key]?.planned_minutes)}
-                  </span>
-                  <span className="text-xs text-dark-muted">planifié</span>
-                </div>
-              </>
-            )}
+          { label: "Temps Aujourd'hui", key: 'day', color: 'accent-green', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+          { label: 'Temps cette Semaine', key: 'week', color: 'primary-500', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+          { label: 'Temps ce Mois', key: 'month', color: 'accent-pink', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+        ].map(({ label, key, color, icon }) => (
+          <div key={key} className="bg-white rounded-3xl shadow-soft p-6 border border-surface-100 group hover:shadow-card transition-all">
+            <div className="flex items-center justify-between mb-4">
+               <div className={`w-10 h-10 rounded-xl bg-${color}/10 flex items-center justify-center text-${color}`}>
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon} /></svg>
+               </div>
+               <div className="text-right">
+                  <p className="text-xs font-bold text-dark-muted uppercase tracking-wider mb-1">{label}</p>
+                  <p className={`text-2xl font-black text-dark`}>
+                    {loading ? '...' : formatDuration(sessionStats?.[key]?.completed_minutes)}
+                  </p>
+               </div>
+            </div>
+            <div className="pt-4 border-t border-surface-50 grid grid-cols-2 gap-4">
+               <div>
+                  <p className="text-[10px] font-bold text-dark-muted uppercase tracking-tight">Code</p>
+                  <p className="text-sm font-bold text-dark">{loading ? '—' : formatDuration(sessionStats?.[key]?.code_minutes || 0)}</p>
+               </div>
+               <div className="text-right">
+                  <p className="text-[10px] font-bold text-dark-muted uppercase tracking-tight">Conduite</p>
+                  <p className="text-sm font-bold text-dark">{loading ? '—' : formatDuration(sessionStats?.[key]?.seance_minutes || 0)}</p>
+               </div>
+            </div>
           </div>
         ))}
       </div>

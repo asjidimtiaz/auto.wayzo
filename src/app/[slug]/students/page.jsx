@@ -25,6 +25,20 @@ const FORM_DEFAULT = {
 
 const STATUS_BADGE = { 'En formation': 'info', 'Permis obtenu': 'success', 'Suspendu': 'warning', 'Abandonné': 'danger' };
 
+const getAvatarColor = (name) => {
+  const colors = [
+    'bg-blue-100 text-blue-600',
+    'bg-purple-100 text-purple-600',
+    'bg-amber-100 text-amber-600',
+    'bg-emerald-100 text-emerald-600',
+    'bg-rose-100 text-rose-600',
+    'bg-indigo-100 text-indigo-600',
+    'bg-cyan-100 text-cyan-600',
+  ];
+  const index = (name || '').length % colors.length;
+  return colors[index];
+};
+
 export default function StudentsPage() {
   const { slug } = useParams();
   const notify = useNotification();
@@ -198,8 +212,8 @@ export default function StudentsPage() {
                     <tr key={s.id} className="hover:bg-surface-50 transition-colors">
                       <td className="px-4 py-3">
                         <Link href={`/${slug}/students/${s.id}`} className="flex items-center gap-3 group">
-                          <div className="w-9 h-9 rounded-full bg-primary-500/10 flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs font-semibold text-primary-500">{s.full_name?.substring(0, 2).toUpperCase()}</span>
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-xs ${getAvatarColor(s.full_name)}`}>
+                            {s.full_name?.substring(0, 2).toUpperCase()}
                           </div>
                           <div>
                             <p className="text-sm font-semibold text-dark group-hover:text-primary-500 transition-colors">{s.full_name}</p>

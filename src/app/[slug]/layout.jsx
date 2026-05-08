@@ -18,6 +18,7 @@ const NAV = [
   { path: '/expenses', label: 'Dépenses', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 1v8m0 0v1m-7-14h10a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z' },
   { path: '/alerts', label: 'Alertes', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
   { path: '/offers', label: 'Offres', icon: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z' },
+  { path: '/calculateur', label: 'Calculateur', icon: 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z' },
   { path: '/settings', label: 'Paramètres', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
 ];
 
@@ -62,8 +63,7 @@ function Sidebar({ slug, onSchoolInfoLoaded, collapsed, setCollapsed }) {
 
   return (
     <aside
-      className={`flex flex-col transition-all duration-300 flex-shrink-0 ${collapsed ? 'w-[72px]' : 'w-64'} shadow-2xl z-[10001] relative`}
-      style={{ background: 'linear-gradient(165deg, #34D399 0%, #00D97E 40%, #008f51 100%)' }}
+      className={`flex flex-col transition-all duration-300 flex-shrink-0 ${collapsed ? 'w-[72px]' : 'w-64'} shadow-xl z-[10001] relative bg-primary-600`}
     >
       {/* Header */}
       {collapsed ? (
@@ -99,7 +99,7 @@ function Sidebar({ slug, onSchoolInfoLoaded, collapsed, setCollapsed }) {
                 <h1 className="text-sm font-bold text-white leading-tight truncate">
                   {schoolName || 'Auto-École'}
                 </h1>
-                <p className="text-[11px] text-white/80 mt-1 font-medium truncate uppercase tracking-wider">Espace de gestion</p>
+                <p className="text-[11px] text-blue-100 mt-1 font-medium truncate uppercase tracking-wider">Espace de gestion</p>
               </div>
             </div>
             <button
@@ -137,7 +137,7 @@ function Sidebar({ slug, onSchoolInfoLoaded, collapsed, setCollapsed }) {
                   href={item.fullPath}
                   title={item.label}
                   className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all ${
-                    active ? 'bg-white/20 text-white shadow-lightning scale-110 backdrop-blur-md ring-1 ring-white/30' : 'text-white/60 hover:bg-white/10 hover:text-white'
+                    active ? 'bg-white text-primary-600 shadow-md' : 'text-blue-100 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   <svg className="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -155,17 +155,16 @@ function Sidebar({ slug, onSchoolInfoLoaded, collapsed, setCollapsed }) {
                 <Link
                   key={item.fullPath}
                   href={item.fullPath}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all relative group ${
-                    active ? 'bg-white/15 text-white shadow-lightning ring-1 ring-white/20' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
+                    active ? 'bg-white text-primary-600 shadow-lg' : 'text-blue-100 hover:bg-white/10 hover:text-white'
                   }`}
                 >
-                  {active && <div className="absolute left-0 top-2.5 bottom-2.5 w-1 bg-white rounded-full" />}
                   <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
                   </svg>
-                  <span className="flex-1 tracking-tight">{item.label}</span>
+                  <span className="flex-1">{item.label}</span>
                   {item.path === '/alerts' && alertCounts.total > 0 && (
-                    <span className={`px-2 py-0.5 text-[10px] rounded-full font-bold ${alertCounts.danger > 0 ? 'bg-red-500 text-white' : 'bg-yellow-500 text-dark'}`}>
+                    <span className={`px-2 py-0.5 text-[10px] rounded-full font-bold bg-red-500 text-white`}>
                       {alertCounts.total}
                     </span>
                   )}
@@ -177,7 +176,7 @@ function Sidebar({ slug, onSchoolInfoLoaded, collapsed, setCollapsed }) {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-white/15 p-3">
+      <div className="border-t border-white/20 p-3">
         {collapsed ? (
           <div className="flex justify-center">
             <button
@@ -198,8 +197,8 @@ function Sidebar({ slug, onSchoolInfoLoaded, collapsed, setCollapsed }) {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white truncate">{user?.username || 'Admin'}</p>
-              <p className="text-xs text-white/80 font-medium">Administrateur</p>
+                <p className="text-sm font-bold text-white truncate">{user?.username || 'Admin'}</p>
+                <p className="text-xs text-blue-100 font-medium">Administrateur</p>
             </div>
             <button
               onClick={logout}
@@ -235,7 +234,7 @@ function MobileHeader({ schoolName, logoUrl, onToggleSidebar }) {
               <img src={logoUrl} alt={schoolName} className="w-full h-full object-contain p-0.5" />
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, #34D399 0%, #10B981 100%)' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}>
               <span className="text-white font-bold text-xs">
                 {schoolName ? schoolName.substring(0, 2).toUpperCase() : 'AE'}
               </span>

@@ -75,39 +75,77 @@ export default function AttendancePage() {
   };
 
   const startScanner = async () => {
+    if (scanning) return;
     setScanning(true);
     setResult(null);
     try {
-      const { Html5QrcodeScanner } = await import('html5-qrcode');
-      const scanner = new Html5QrcodeScanner('qr-reader', { 
-        fps: 10, 
-        qrbox: { width: 250, height: 250 },
-        rememberLastUsedCamera: true
-      }, false);
-      scannerInstanceRef.current = scanner;
-      scanner.render(
+      const { Html5Qrcode } = await import('html5-qrcode');
+      const html5QrCode = new Html5Qrcode('qr-reader');
+      scannerInstanceRef.current = html5QrCode;
+      
+      const config = { fps: 15, qrbox: { width: 250, height: 250 } };
+      
+      await html5QrCode.start(
+        { facingMode: "environment" }, 
+        config,
         (text) => {
-          scanner.clear();
-          setScanning(false);
+          // Play beep sound
+          playBeep();
           processQrCode(text);
+          
+          // Brief pause before next scan to prevent double scans
+          html5QrCode.pause();
+          setTimeout(() => {
+            if (scannerInstanceRef.current?.isScanning) {
+              html5QrCode.resume();
+            }
+          }, 2000);
         },
         (err) => {}
       );
     } catch (e) {
       console.error('Scanner init error', e);
       setScanning(false);
+      notify.error('Erreur d\'accès à la caméra. Vérifiez les permissions.');
     }
   };
 
-  const stopScanner = () => {
+  const playBeep = () => {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.1);
+    } catch (e) {}
+  };
+
+  const stopScanner = async () => {
     if (scannerInstanceRef.current) {
-      scannerInstanceRef.current.clear().catch(console.error);
-      setScanning(false);
+      try {
+        if (scannerInstanceRef.current.isScanning) {
+          await scannerInstanceRef.current.stop();
+        }
+      } catch (e) {
+        console.error('Stop error', e);
+      } finally {
+        setScanning(false);
+        scannerInstanceRef.current = null;
+      }
     }
   };
 
   useEffect(() => {
-    return () => stopScanner();
+    return () => {
+      if (scannerInstanceRef.current?.isScanning) {
+        scannerInstanceRef.current.stop().catch(() => {});
+      }
+    };
   }, []);
 
   const presentIds = useMemo(() => new Set(todayList.filter(a => !a.scan_out_time).map(a => a.student_id)), [todayList]);
@@ -160,17 +198,31 @@ export default function AttendancePage() {
             </div>
             <div className="p-6">
               <div className="relative">
-                <div id="qr-reader" className={`rounded-2xl overflow-hidden border-2 border-dashed border-surface-200 bg-surface-50 transition-all ${scanning ? 'min-h-[300px]' : 'h-64'}`}>
+                <div id="qr-reader" className={`relative rounded-2xl overflow-hidden border-2 border-surface-200 bg-black transition-all ${scanning ? 'aspect-square max-w-[400px] mx-auto' : 'h-64'}`}>
+                  {scanning && (
+                    <>
+                      {/* Scan Line Animation */}
+                      <div className="absolute top-0 left-0 w-full h-1 bg-primary-500 shadow-[0_0_15px_rgba(59,130,246,0.8)] z-10 animate-scanLine" />
+                      
+                      {/* Scanning Indicators */}
+                      <div className="absolute inset-0 border-[40px] border-black/40 z-0 pointer-events-none" />
+                      <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">Live Scan</span>
+                      </div>
+                    </>
+                  )}
+                  
                   {!scanning && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-surface-50">
                       <div className="w-16 h-16 rounded-3xl bg-white shadow-soft flex items-center justify-center mb-4">
                         <svg className="w-8 h-8 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                       </div>
-                      <p className="text-dark font-medium">Cliquez sur "Démarrer Caméra" pour scanner</p>
-                      <p className="text-sm text-dark-muted mt-1">Ou utilisez l'entrée manuelle ci-dessous</p>
+                      <p className="text-dark font-medium">Prêt pour le scan</p>
+                      <p className="text-sm text-dark-muted mt-1">Cliquez sur le bouton pour activer la caméra</p>
                     </div>
                   )}
                 </div>

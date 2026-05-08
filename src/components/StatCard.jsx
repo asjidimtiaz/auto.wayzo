@@ -2,7 +2,7 @@
 
 const colorMap = {
   primary: { icon: 'bg-primary-500/10 text-primary-500', gradient: 'from-primary-500 to-primary-400' },
-  success: { icon: 'bg-accent-green/10 text-accent-green', gradient: 'from-accent-green to-emerald-300' },
+  success: { icon: 'bg-accent-green/10 text-accent-green', gradient: 'from-accent-green to-teal-300' },
   warning: { icon: 'bg-accent-yellow/10 text-accent-yellow', gradient: 'from-accent-yellow to-amber-300' },
   danger:  { icon: 'bg-accent-red/10 text-accent-red', gradient: 'from-accent-red to-red-300' },
   info:    { icon: 'bg-accent-blue/10 text-accent-blue', gradient: 'from-accent-blue to-blue-300' },

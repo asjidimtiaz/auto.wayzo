@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ─────────────────────────────────────────────
    Base reset – matches compiled VPS output
@@ -14,9 +14,9 @@
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: #f8f8fc; /* surface-50 */
-  color: #2d3047;            /* dark */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #f3f4f6; /* gray-100 */
+  color: #111827;            /* gray-900 */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -98,7 +98,7 @@ body {
            focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
 
-  .btn-primary   { @apply bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-400 shadow-green shadow-md hover:shadow-lg; }
+  .btn-primary   { @apply bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-400 shadow-blue shadow-md hover:shadow-lg; }
   .btn-secondary { @apply border-surface-300 bg-white text-dark-light hover:bg-surface-50 focus:ring-primary-400; }
   .btn-success   { background-color: #00D97E; @apply text-white hover:opacity-90 focus:ring-green-500; }
   .btn-danger    { background-color: #ff6b6b; @apply text-white hover:opacity-90 focus:ring-red-500; }
@@ -198,4 +198,24 @@ body {
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scanLine {
+  0% { top: 0; }
+  50% { top: 100%; }
+  100% { top: 0; }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.animate-scanLine {
+  animation: scanLine 2.5s ease-in-out infinite;
 }

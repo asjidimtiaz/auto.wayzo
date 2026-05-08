@@ -1,9 +1,9 @@
 'use client';
 
 const variants = {
-  primary:   'bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-400 shadow-green shadow-md hover:shadow-lg',
+  primary:   'bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-400 shadow-blue shadow-md hover:shadow-lg',
   secondary: 'bg-white text-dark border border-surface-300 hover:bg-surface-50 focus:ring-primary-400',
-  success:   'bg-accent-green text-white hover:bg-emerald-600 focus:ring-accent-green',
+  success:   'bg-accent-green text-white hover:bg-[#00a383] focus:ring-accent-green',
   danger:    'bg-accent-red text-white hover:bg-red-600 focus:ring-accent-red',
   warning:   'bg-accent-yellow text-white hover:bg-amber-500 focus:ring-accent-yellow',
   ghost:     'text-dark-light hover:bg-surface-100 focus:ring-primary-400',

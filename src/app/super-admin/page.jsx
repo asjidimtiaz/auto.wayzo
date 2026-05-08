@@ -4,40 +4,21 @@ import Link from 'next/link';
 
 function StatCard({ title, value, icon, color }) {
   const themes = {
-    primary: { 
-      gradient: 'from-[#00D97E] via-[#00BA6B] to-[#008F51]', 
-      shadow: 'shadow-[#00D97E]/30',
-      iconBg: 'bg-white/20'
-    },
-    success: { 
-      gradient: 'from-[#34D399] via-[#10B981] to-[#059669]', 
-      shadow: 'shadow-emerald-500/20',
-      iconBg: 'bg-white/20'
-    },
-    info: { 
-      gradient: 'from-[#60A5FA] via-[#3B82F6] to-[#2563EB]', 
-      shadow: 'shadow-blue-500/20',
-      iconBg: 'bg-white/20'
-    },
-    warning: { 
-      gradient: 'from-[#FBBF24] via-[#F59E0B] to-[#D97706]', 
-      shadow: 'shadow-amber-500/20',
-      iconBg: 'bg-white/20'
-    },
+    primary: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-500' },
+    success: { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-500' },
+    info: { bg: 'bg-sky-50', text: 'text-sky-600', border: 'border-sky-500' },
+    warning: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-500' },
   };
   const cfg = themes[color] || themes.primary;
 
   return (
-    <div className={`relative overflow-hidden bg-gradient-to-br ${cfg.gradient} rounded-[24px] p-6 ${cfg.shadow} shadow-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl group border border-white/10`}>
-      {/* Decorative Blur Circle */}
-      <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
-      
-      <div className="relative flex items-center justify-between">
+    <div className={`bg-white rounded-2xl p-6 shadow-sm border-l-4 ${cfg.border} transition-all hover:shadow-md`}>
+      <div className="flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-extrabold text-white/70 uppercase tracking-[0.15em] mb-1">{title}</p>
-          <p className="text-2xl font-extrabold text-white tracking-tight">{value}</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{title}</p>
+          <p className="text-2xl font-bold text-gray-900">{value}</p>
         </div>
-        <div className={`w-12 h-12 rounded-2xl ${cfg.iconBg} backdrop-blur-md flex items-center justify-center text-white ring-1 ring-white/30 shadow-inner`}>
+        <div className={`w-12 h-12 rounded-xl ${cfg.bg} flex items-center justify-center ${cfg.text}`}>
           {icon}
         </div>
       </div>

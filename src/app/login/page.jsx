@@ -47,23 +47,23 @@ export default function LoginPage() {
     <div className="min-h-screen flex bg-[#0a0a0f]">
       {/* Left panel */}
       <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden items-center justify-center">
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #064e3b 0%, #022c22 40%, #0a0a0f 100%)' }} />
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-600/20 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '4s' }} />
-        <div className="absolute bottom-1/4 right-1/3 w-[400px] h-[400px] bg-green-600/15 rounded-full blur-[100px] animate-pulse" style={{ animationDuration: '6s' }} />
-        <div className="absolute top-1/2 right-1/4 w-[300px] h-[300px] bg-teal-500/10 rounded-full blur-[80px] animate-pulse" style={{ animationDuration: '5s' }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #172554 40%, #0a0a0f 100%)' }} />
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '4s' }} />
+        <div className="absolute bottom-1/4 right-1/3 w-[400px] h-[400px] bg-blue-500/15 rounded-full blur-[100px] animate-pulse" style={{ animationDuration: '6s' }} />
+        <div className="absolute top-1/2 right-1/4 w-[300px] h-[300px] bg-sky-500/10 rounded-full blur-[80px] animate-pulse" style={{ animationDuration: '5s' }} />
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
 
         <div className={`relative z-10 max-w-lg px-12 transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <div className="mb-8">
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-emerald-500/20 to-green-500/20 border border-emerald-500/20 flex items-center justify-center backdrop-blur-sm">
-              <svg className="w-10 h-10 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500/20 to-sky-500/20 border border-blue-500/20 flex items-center justify-center backdrop-blur-sm">
+              <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
           </div>
           <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
             Panneau<br />
-            <span className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">Super Administration</span>
+            <span className="bg-gradient-to-r from-blue-400 to-sky-400 bg-clip-text text-transparent">Super Administration</span>
           </h2>
           <p className="text-white/40 text-lg leading-relaxed mb-10">
             Gérez l&apos;ensemble de vos auto-écoles depuis un seul tableau de bord centralisé.
@@ -76,7 +76,7 @@ export default function LoginPage() {
             ].map((item, i) => (
               <div key={i} className={`flex items-center gap-4 transition-all duration-700 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'}`} style={{ transitionDelay: `${600 + 150 * i}ms` }}>
                 <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.icon} />
                   </svg>
                 </div>
@@ -94,8 +94,8 @@ export default function LoginPage() {
 
         <div className={`relative w-full max-w-[420px] transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`} style={{ transitionDelay: '200ms' }}>
           <div className="lg:hidden text-center mb-10">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-green-500/20 border border-emerald-500/20 mb-4">
-              <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-sky-500/20 border border-blue-500/20 mb-4">
+              <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
@@ -103,8 +103,8 @@ export default function LoginPage() {
           </div>
 
           <div className="flex items-center gap-2 mb-8">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Super Administration</span>
+            <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+            <span className="text-xs font-semibold text-blue-400 uppercase tracking-widest">Super Administration</span>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Bon retour</h1>
           <p className="text-white/35 mb-8">Connectez-vous pour accéder au panneau d&apos;administration</p>
@@ -128,7 +128,7 @@ export default function LoginPage() {
               <label className="block text-sm font-medium text-white/50 mb-2">Nom d&apos;utilisateur</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-white/20 group-focus-within:text-emerald-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-white/20 group-focus-within:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
@@ -136,7 +136,7 @@ export default function LoginPage() {
                   type="text"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 bg-white/[0.04] border border-white/[0.08] rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 focus:bg-white/[0.06] transition-all text-sm text-white placeholder-white/20 outline-none"
+                  className="w-full pl-12 pr-4 py-3.5 bg-white/[0.04] border border-white/[0.08] rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/30 focus:bg-white/[0.06] transition-all text-sm text-white placeholder-white/20 outline-none"
                   placeholder="Entrez votre identifiant"
                   required autoFocus autoComplete="username"
                 />
@@ -147,7 +147,7 @@ export default function LoginPage() {
               <label className="block text-sm font-medium text-white/50 mb-2">Mot de passe</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-white/20 group-focus-within:text-emerald-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-white/20 group-focus-within:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
@@ -155,7 +155,7 @@ export default function LoginPage() {
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-12 py-3.5 bg-white/[0.04] border border-white/[0.08] rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 focus:bg-white/[0.06] transition-all text-sm text-white placeholder-white/20 outline-none"
+                  className="w-full pl-12 pr-12 py-3.5 bg-white/[0.04] border border-white/[0.08] rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/30 focus:bg-white/[0.06] transition-all text-sm text-white placeholder-white/20 outline-none"
                   placeholder="Entrez votre mot de passe"
                   required autoComplete="current-password"
                 />
@@ -177,7 +177,7 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               className="w-full py-3.5 px-4 text-white font-semibold rounded-2xl transition-all duration-300 flex items-center justify-center gap-2.5 disabled:opacity-50 relative overflow-hidden group mt-2"
-              style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)' }}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
               {loading ? (

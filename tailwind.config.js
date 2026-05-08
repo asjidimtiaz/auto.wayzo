@@ -10,15 +10,15 @@ module.exports = {
       colors: {
         // Primary – purple scale (reverse-engineered from compiled CSS)
         primary: {
-          50:  '#ecfdf5',
-          100: '#d1fae5',
-          200: '#a7f3d0',
-          300: '#6ee7b7',
-          400: '#34d399',
-          500: '#00D97E', // The requested vibrant green
-          600: '#00B368',
-          700: '#008F53',
-          800: '#065f46',
+          50:  '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#2563eb', // The requested blue
+          600: '#1d4ed8',
+          700: '#1e40af',
+          800: '#1e3a8a',
         },
         // Surface – cool-grey / lavender tones
         surface: {
@@ -45,7 +45,7 @@ module.exports = {
         'card':       '0 4px 16px rgba(0,0,0,0.04)',
         'card-hover': '0 8px 24px rgba(0,0,0,0.08)',
         'soft':       '0 2px 10px rgba(0,0,0,0.04)',
-        'green':      '0 8px 24px rgba(16,185,129,0.20)',
+        'blue':       '0 8px 24px rgba(37,99,235,0.20)',
       },
       animation: {
         fadeIn:  'fadeIn 0.3s ease-out forwards',
