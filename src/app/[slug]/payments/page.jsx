@@ -291,12 +291,12 @@ export default function PaymentsPage() {
       {/* Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="modal-header flex items-center justify-between">
-              <h2 className="text-lg font-bold text-dark">Nouveau paiement</h2>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="text-xl font-bold text-dark">Nouveau paiement</h2>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-xl hover:bg-surface-100 text-dark-muted transition-colors"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
               <div className="modal-body space-y-4">
                 <div><label className="form-label">Étudiant *</label><select {...F('student_id')} required className="form-select"><option value="">Sélectionner</option>{students.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select></div>
                 <div><label className="form-label">Montant (MAD) *</label><input type="number" min="0" step="0.01" {...F('amount')} required className="form-input" placeholder="0.00" /></div>

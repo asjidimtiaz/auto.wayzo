@@ -152,55 +152,57 @@ export default function ExpensesPage() {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark/20 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden animate-scaleUp">
-            <div className="px-6 py-4 border-b border-surface-100 flex items-center justify-between bg-surface-25">
-              <h2 className="font-bold text-dark">Nouvelle Dépense</h2>
+          <div className="modal-content !max-w-lg" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="text-xl font-bold text-dark">Nouvelle Dépense</h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-surface-100 rounded-xl transition-colors">
                 <svg className="w-5 h-5 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-dark-muted uppercase tracking-wider">Catégorie</label>
-                  <select 
-                    value={form.category} 
-                    onChange={e => setForm({ ...form, category: e.target.value, subcategory: CATEGORIES.find(c => c.id === e.target.value)?.subcategories?.[0] || '' })}
-                    className="form-select w-full"
-                  >
-                    {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                  </select>
-                </div>
-                {currentCategory?.subcategories && (
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="modal-body space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-dark-muted uppercase tracking-wider">Sous-catégorie</label>
+                    <label className="text-xs font-bold text-dark-muted uppercase tracking-wider">Catégorie</label>
                     <select 
-                      value={form.subcategory} 
-                      onChange={e => setForm({ ...form, subcategory: e.target.value })}
+                      value={form.category} 
+                      onChange={e => setForm({ ...form, category: e.target.value, subcategory: CATEGORIES.find(c => c.id === e.target.value)?.subcategories?.[0] || '' })}
                       className="form-select w-full"
                     >
-                      {currentCategory.subcategories.map(s => <option key={s} value={s}>{s}</option>)}
+                      {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                     </select>
                   </div>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-dark-muted uppercase tracking-wider">Montant (DH)</label>
-                  <input type="number" required value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="form-input w-full font-bold text-accent-red" placeholder="0.00" />
+                  {currentCategory?.subcategories && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-dark-muted uppercase tracking-wider">Sous-catégorie</label>
+                      <select 
+                        value={form.subcategory} 
+                        onChange={e => setForm({ ...form, subcategory: e.target.value })}
+                        className="form-select w-full"
+                      >
+                        {currentCategory.subcategories.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-dark-muted uppercase tracking-wider">Montant (DH)</label>
+                    <input type="number" required value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="form-input w-full font-bold text-accent-red" placeholder="0.00" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-dark-muted uppercase tracking-wider">Date</label>
+                    <input type="date" required value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="form-input w-full" />
+                  </div>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-dark-muted uppercase tracking-wider">Date</label>
-                  <input type="date" required value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="form-input w-full" />
+                  <label className="text-xs font-bold text-dark-muted uppercase tracking-wider">Notes / Justification</label>
+                  <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="form-input w-full h-20 resize-none" placeholder="Ex: Réparation frein Peugeot 208..." />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-dark-muted uppercase tracking-wider">Notes / Justification</label>
-                <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="form-input w-full h-20 resize-none" placeholder="Ex: Réparation frein Peugeot 208..." />
-              </div>
-              <div className="pt-4 flex gap-3">
-                <Button type="button" variant="outline" onClick={() => setShowModal(false)} className="flex-1">Annuler</Button>
-                <Button type="submit" variant="primary" loading={saving} className="flex-1">Enregistrer</Button>
+              <div className="modal-footer">
+                <Button type="button" variant="secondary" onClick={() => setShowModal(false)} className="flex-1">Annuler</Button>
+                <Button type="submit" loading={saving} className="flex-1">Enregistrer</Button>
               </div>
             </form>
           </div>

@@ -21,11 +21,11 @@ const NAV = [
   { path: '/settings', label: 'Paramètres', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
 ];
 
-function Sidebar({ slug, onSchoolInfoLoaded }) {
+function Sidebar({ slug, onSchoolInfoLoaded, collapsed, setCollapsed }) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
   const [alertCounts, setAlertCounts] = useState({ total: 0, danger: 0 });
-  const [collapsed, setCollapsed] = useState(false);
+
   const [schoolName, setSchoolName] = useState('');
   const [logoUrl, setLogoUrl] = useState(null);
 
@@ -62,8 +62,8 @@ function Sidebar({ slug, onSchoolInfoLoaded }) {
 
   return (
     <aside
-      className={`flex flex-col transition-all duration-300 flex-shrink-0 ${collapsed ? 'w-[72px]' : 'w-64'}`}
-      style={{ background: 'linear-gradient(180deg, #6C5CE7 0%, #4834D4 100%)' }}
+      className={`flex flex-col transition-all duration-300 flex-shrink-0 ${collapsed ? 'w-[72px]' : 'w-64'} shadow-2xl z-[10001] relative`}
+      style={{ background: 'linear-gradient(165deg, #34D399 0%, #00D97E 40%, #008f51 100%)' }}
     >
       {/* Header */}
       {collapsed ? (
@@ -99,7 +99,7 @@ function Sidebar({ slug, onSchoolInfoLoaded }) {
                 <h1 className="text-sm font-bold text-white leading-tight truncate">
                   {schoolName || 'Auto-École'}
                 </h1>
-                <p className="text-[10px] text-white/50 mt-0.5 truncate">Espace de gestion</p>
+                <p className="text-[11px] text-white/80 mt-1 font-medium truncate uppercase tracking-wider">Espace de gestion</p>
               </div>
             </div>
             <button
@@ -137,7 +137,7 @@ function Sidebar({ slug, onSchoolInfoLoaded }) {
                   href={item.fullPath}
                   title={item.label}
                   className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all ${
-                    active ? 'bg-white/20 text-white shadow-lg' : 'text-white/65 hover:bg-white/10 hover:text-white/90'
+                    active ? 'bg-white/20 text-white shadow-lightning scale-110 backdrop-blur-md ring-1 ring-white/30' : 'text-white/60 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   <svg className="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,23 +148,24 @@ function Sidebar({ slug, onSchoolInfoLoaded }) {
             })}
           </div>
         ) : (
-          <div className="flex flex-col gap-1 px-3">
+          <div className="flex flex-col gap-2.5 px-3">
             {navItems.map((item) => {
               const active = isActive(item);
               return (
                 <Link
                   key={item.fullPath}
                   href={item.fullPath}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                    active ? 'bg-white/20 text-white shadow-lg' : 'text-white/65 hover:bg-white/10 hover:text-white/90'
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all relative group ${
+                    active ? 'bg-white/15 text-white shadow-lightning ring-1 ring-white/20' : 'text-white/70 hover:bg-white/10 hover:text-white'
                   }`}
                 >
+                  {active && <div className="absolute left-0 top-2.5 bottom-2.5 w-1 bg-white rounded-full" />}
                   <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
                   </svg>
-                  <span className="flex-1">{item.label}</span>
+                  <span className="flex-1 tracking-tight">{item.label}</span>
                   {item.path === '/alerts' && alertCounts.total > 0 && (
-                    <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${alertCounts.danger > 0 ? 'bg-red-400/30 text-white' : 'bg-yellow-400/30 text-white'}`}>
+                    <span className={`px-2 py-0.5 text-[10px] rounded-full font-bold ${alertCounts.danger > 0 ? 'bg-red-500 text-white' : 'bg-yellow-500 text-dark'}`}>
                       {alertCounts.total}
                     </span>
                   )}
@@ -197,8 +198,8 @@ function Sidebar({ slug, onSchoolInfoLoaded }) {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user?.username || 'Admin'}</p>
-              <p className="text-xs text-white/50">Administrateur</p>
+              <p className="text-sm font-bold text-white truncate">{user?.username || 'Admin'}</p>
+              <p className="text-xs text-white/80 font-medium">Administrateur</p>
             </div>
             <button
               onClick={logout}
@@ -234,7 +235,7 @@ function MobileHeader({ schoolName, logoUrl, onToggleSidebar }) {
               <img src={logoUrl} alt={schoolName} className="w-full h-full object-contain p-0.5" />
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, #6C5CE7 0%, #4834D4 100%)' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, #34D399 0%, #10B981 100%)' }}>
               <span className="text-white font-bold text-xs">
                 {schoolName ? schoolName.substring(0, 2).toUpperCase() : 'AE'}
               </span>
@@ -263,6 +264,7 @@ export default function SlugLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [schoolName, setSchoolName] = useState('');
   const [logoUrl, setLogoUrl] = useState(null);
+  const [collapsed, setCollapsed] = useState(false);
 
   // Register slug globally so api.js sends x-tenant-slug header
   useEffect(() => {
@@ -288,7 +290,7 @@ export default function SlugLayout({ children }) {
       <div className="flex h-screen overflow-hidden bg-surface-100">
       {/* Desktop sidebar */}
       <div className="hidden lg:flex">
-        <Sidebar slug={slug} onSchoolInfoLoaded={handleSchoolInfoLoaded} />
+        <Sidebar slug={slug} onSchoolInfoLoaded={handleSchoolInfoLoaded} collapsed={collapsed} setCollapsed={setCollapsed} />
       </div>
 
       {/* Mobile overlay */}
@@ -296,11 +298,11 @@ export default function SlugLayout({ children }) {
 
       {/* Mobile sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 transition-transform duration-300 lg:hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <Sidebar slug={slug} onSchoolInfoLoaded={handleSchoolInfoLoaded} />
+        <Sidebar slug={slug} onSchoolInfoLoaded={handleSchoolInfoLoaded} collapsed={collapsed} setCollapsed={setCollapsed} />
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0" style={{ '--sidebar-width': collapsed ? '72px' : '256px' }}>
         <MobileHeader
           schoolName={schoolName}
           logoUrl={logoUrl}

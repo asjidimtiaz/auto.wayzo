@@ -10,15 +10,15 @@ module.exports = {
       colors: {
         // Primary – purple scale (reverse-engineered from compiled CSS)
         primary: {
-          50:  '#f3f0ff',
-          100: '#e8e0ff',
-          200: '#d1c2fe',
-          300: '#b49bfe',
-          400: '#9b7efc',
-          500: '#6c5ce7',
-          600: '#5a4bd1',
-          700: '#4834d4',
-          800: '#3b22b8',
+          50:  '#ecfdf5',
+          100: '#d1fae5',
+          200: '#a7f3d0',
+          300: '#6ee7b7',
+          400: '#34d399',
+          500: '#00D97E', // The requested vibrant green
+          600: '#00B368',
+          700: '#008F53',
+          800: '#065f46',
         },
         // Surface – cool-grey / lavender tones
         surface: {
@@ -45,7 +45,7 @@ module.exports = {
         'card':       '0 4px 16px rgba(0,0,0,0.04)',
         'card-hover': '0 8px 24px rgba(0,0,0,0.08)',
         'soft':       '0 2px 10px rgba(0,0,0,0.04)',
-        'purple':     '0 8px 24px rgba(108,92,231,0.20)',
+        'green':      '0 8px 24px rgba(16,185,129,0.20)',
       },
       animation: {
         fadeIn:  'fadeIn 0.3s ease-out forwards',
@@ -57,16 +57,16 @@ module.exports = {
       },
       keyframes: {
         fadeIn: {
-          '0%':   { opacity: '0', transform: 'translateY(10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+          '0%':   { opacity: '0' },
+          '100%': { opacity: '1' },
         },
         slideIn: {
           '0%':   { opacity: '0', transform: 'translateX(20px)' },
           '100%': { opacity: '1', transform: 'translateX(0)' },
         },
         slideUp: {
-          '0%':   { opacity: '0', transform: 'translateY(20px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+          '0%':   { opacity: '0' },
+          '100%': { opacity: '1' },
         },
         scaleIn: {
           '0%':   { opacity: '0', transform: 'scale(0.95)' },

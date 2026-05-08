@@ -186,7 +186,7 @@ export default function StudentDetailPage() {
             <span className="text-sm font-bold text-primary-500">{paymentPct.toFixed(0)}%</span>
           </div>
           <div className="h-2.5 bg-surface-100 rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${paymentPct}%`, background: 'linear-gradient(90deg, #6C5CE7, #4834D4)' }} />
+            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${paymentPct}%`, background: 'linear-gradient(90deg, #10B981, #059669)' }} />
           </div>
           <div className="flex justify-between mt-1.5 text-xs text-dark-muted">
             <span>{formatCurrency(paid)} versé</span>
@@ -418,12 +418,12 @@ export default function StudentDetailPage() {
       {/* Payment modal */}
       {showPayModal && (
         <div className="modal-overlay" onClick={() => setShowPayModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="modal-header flex items-center justify-between">
-              <h2 className="text-base font-bold text-dark">Ajouter un paiement</h2>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="text-xl font-bold text-dark">Ajouter un paiement</h2>
               <button onClick={() => setShowPayModal(false)} className="p-2 rounded-xl hover:bg-surface-100 text-dark-muted"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
-            <form onSubmit={handlePaySubmit}>
+            <form onSubmit={handlePaySubmit} className="flex flex-col flex-1 overflow-hidden">
               <div className="modal-body space-y-4">
                 <div><label className="form-label">Montant (MAD) *</label><input type="number" min="0.01" step="0.01" value={payForm.amount} onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))} required className="form-input" /></div>
                 <div><label className="form-label">Méthode *</label><select value={payForm.payment_method} onChange={e => setPayForm(f => ({ ...f, payment_method: e.target.value }))} className="form-select">{['Cash', 'Transfer', 'Cheque', 'TPE'].map(m => <option key={m}>{m}</option>)}</select></div>
@@ -442,12 +442,12 @@ export default function StudentDetailPage() {
       {/* Stage modal */}
       {showStageModal && (
         <div className="modal-overlay" onClick={() => setShowStageModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="modal-header flex items-center justify-between">
-              <h2 className="text-base font-bold text-dark">Nouveau stage</h2>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="text-xl font-bold text-dark">Nouveau stage</h2>
               <button onClick={() => setShowStageModal(false)} className="p-2 rounded-xl hover:bg-surface-100 text-dark-muted"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
-            <form onSubmit={handleStageSubmit}>
+            <form onSubmit={handleStageSubmit} className="flex flex-col flex-1 overflow-hidden">
               <div className="modal-body space-y-3">
                 <div><label className="form-label">Type *</label><select value={stageForm.type} onChange={e => setStageForm(f => ({ ...f, type: e.target.value }))} className="form-select">{['Séance', 'Examen', 'Code', 'Plateau'].map(t => <option key={t}>{t}</option>)}</select></div>
                 <div><label className="form-label">Titre *</label><input value={stageForm.title} onChange={e => setStageForm(f => ({ ...f, title: e.target.value }))} required className="form-input" /></div>
@@ -469,12 +469,12 @@ export default function StudentDetailPage() {
       {/* Incident modal */}
       {showIncidentModal && (
         <div className="modal-overlay" onClick={() => setShowIncidentModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="modal-header flex items-center justify-between">
-              <h2 className="text-base font-bold text-dark">Signaler un incident</h2>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="text-xl font-bold text-dark">Signaler un incident</h2>
               <button onClick={() => setShowIncidentModal(false)} className="p-2 rounded-xl hover:bg-surface-100 text-dark-muted"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
-            <form onSubmit={handleIncidentSubmit}>
+            <form onSubmit={handleIncidentSubmit} className="flex flex-col flex-1 overflow-hidden">
               <div className="modal-body space-y-3">
                 <div><label className="form-label">Type *</label><input value={incidentForm.type} onChange={e => setIncidentForm(f => ({ ...f, type: e.target.value }))} required placeholder="Ex: Absence injustifiée" className="form-input" /></div>
                 <div><label className="form-label">Sévérité</label><select value={incidentForm.severity} onChange={e => setIncidentForm(f => ({ ...f, severity: e.target.value }))} className="form-select">{['Avertissement', 'Moyen', 'Grave'].map(s => <option key={s}>{s}</option>)}</select></div>

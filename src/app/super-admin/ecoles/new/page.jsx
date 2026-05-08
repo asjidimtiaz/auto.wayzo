@@ -186,7 +186,7 @@ export default function NewEcolePage() {
 
             {logoPreview && (
               <div className="flex items-center gap-2 px-3 py-2 bg-purple-50 rounded-xl border border-purple-100 w-full">
-                <div className="w-8 h-8 rounded-xl overflow-hidden flex-shrink-0 shadow-sm" style={{ background: 'linear-gradient(135deg, #6C5CE7, #4834D4)' }}>
+                <div className="w-8 h-8 rounded-xl overflow-hidden flex-shrink-0 shadow-sm" style={{ background: 'linear-gradient(135deg, #10B981, #059669)' }}>
                   <div className="w-full h-full flex items-center justify-center p-0.5">
                     <img src={logoPreview} alt="Logo" className="w-full h-full object-contain rounded-lg bg-white" />
                   </div>

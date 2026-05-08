@@ -97,12 +97,12 @@ export default function OffersPage() {
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="modal-header flex items-center justify-between">
-              <h2 className="text-lg font-bold text-dark">{editOffer ? 'Modifier l\'offre' : 'Nouvelle offre'}</h2>
+          <div className="modal-content !max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="text-xl font-bold text-dark">{editOffer ? 'Modifier l\'offre' : 'Nouvelle offre'}</h2>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-xl hover:bg-surface-100 text-dark-muted transition-colors"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
               <div className="modal-body space-y-4">
                 <div><label className="form-label">Nom de l'offre *</label><input {...F('name')} required className="form-input" placeholder="Ex: Formation Permis B Standard" /></div>
                 <div><label className="form-label">Type de permis *</label><select {...F('license_type')} required className="form-select">{LICENSE_TYPES.map(l => <option key={l} value={l}>Permis {l}</option>)}</select></div>
