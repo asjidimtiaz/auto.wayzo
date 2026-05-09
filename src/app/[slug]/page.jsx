@@ -105,81 +105,97 @@ export default function DashboardPage() {
 
   return (
     <div className="animate-fadeIn">
-      {/* Page header */}
-      <div className="mb-6">
-        <p className="text-xs font-medium text-dark-muted tracking-wider uppercase">Tableau de bord</p>
-        <h1 className="text-2xl font-bold text-dark">{schoolName || 'Dashboard'}</h1>
+      {/* Greeting Section */}
+      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-dark tracking-tight">
+            Bonjour, <span className="text-primary-500">{schoolName || 'Admin'}</span> 👋
+          </h1>
+          <p className="text-dark-muted font-medium mt-1">
+            Voici ce qui se passe dans votre auto-école aujourd'hui.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 bg-white p-2 rounded-[2rem] shadow-soft border border-surface-100">
+           <div className="px-4 py-2 bg-primary-50 rounded-2xl">
+              <p className="text-[10px] font-black text-primary-500 uppercase tracking-widest leading-none">Date</p>
+              <p className="text-sm font-bold text-dark mt-1">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+           </div>
+        </div>
       </div>
 
       {/* Top 4 stat cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
           title="Total Étudiants"
           value={loading ? null : (stats?.totalStudents ?? 0)}
           loading={loading}
           color="primary"
-          icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
+          icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
+          onClick={() => {}}
         />
         <StatCard
           title="En Formation"
           value={loading ? null : (stats?.activeStudents ?? 0)}
           loading={loading}
           color="success"
-          icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>}
+          icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>}
+          onClick={() => {}}
         />
         <StatCard
           title="Permis Obtenus"
           value={loading ? null : (stats?.licensesObtained ?? 0)}
           loading={loading}
-          color="warning"
-          icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>}
+          color="info"
+          icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>}
+          onClick={() => {}}
         />
         <StatCard
-          title="Présents Aujourd'hui"
+          title="Activité"
           value={loading ? null : (stats?.todayAttendance ?? 0)}
           loading={loading}
-          color="info"
-          icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>}
+          color="warning"
+          icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>}
+          onClick={() => {}}
         />
       </div>
 
       {/* Revenue gradient cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
-        <StatCard title="Revenus Totaux" value={loading ? null : formatCurrency(stats?.totalRevenue)} loading={loading} color="success" gradient />
-        <StatCard title="Dépenses Totales" value={loading ? null : formatCurrency(stats?.totalExpenses)} loading={loading} color="accent-red" gradient />
-        <StatCard title="Bénéfice Net" value={loading ? null : formatCurrency(stats?.profit)} loading={loading} color="primary" gradient />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <StatCard title="Revenus Totaux" value={loading ? null : formatCurrency(stats?.totalRevenue)} loading={loading} color="success" gradient onClick={() => {}} />
+        <StatCard title="Dépenses Totales" value={loading ? null : formatCurrency(stats?.totalExpenses)} loading={loading} color="danger" gradient onClick={() => {}} />
+        <StatCard title="Bénéfice Net" value={loading ? null : formatCurrency(stats?.profit)} loading={loading} color="primary" gradient onClick={() => {}} />
       </div>
 
       {/* Session time cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {[
-          { label: "Temps Aujourd'hui", key: 'day', color: 'accent-green', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
-          { label: 'Temps cette Semaine', key: 'week', color: 'primary-500', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-          { label: 'Temps ce Mois', key: 'month', color: 'accent-pink', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+          { label: "Aujourd'hui", key: 'day', color: 'success', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+          { label: 'Semaine', key: 'week', color: 'primary', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+          { label: 'Ce Mois', key: 'month', color: 'info', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
         ].map(({ label, key, color, icon }) => (
-          <div key={key} className="bg-white rounded-3xl shadow-soft p-6 border border-surface-100 group hover:shadow-card transition-all">
-            <div className="flex items-center justify-between mb-4">
-               <div className={`w-10 h-10 rounded-xl bg-${color}/10 flex items-center justify-center text-${color}`}>
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon} /></svg>
-               </div>
-               <div className="text-right">
-                  <p className="text-xs font-bold text-dark-muted uppercase tracking-wider mb-1">{label}</p>
-                  <p className={`text-2xl font-black text-dark`}>
+          <Card key={key} interactive padding="lg" className="group">
+            <div className="flex items-center justify-between mb-6">
+               <div className="flex flex-col">
+                  <p className="text-[10px] font-black text-dark-muted uppercase tracking-widest mb-1">{label}</p>
+                  <p className="text-3xl font-black text-dark tracking-tight">
                     {loading ? '...' : formatDuration(sessionStats?.[key]?.completed_minutes)}
                   </p>
                </div>
-            </div>
-            <div className="pt-4 border-t border-surface-50 grid grid-cols-2 gap-4">
-               <div>
-                  <p className="text-[10px] font-bold text-dark-muted uppercase tracking-tight">Code</p>
-                  <p className="text-sm font-bold text-dark">{loading ? '—' : formatDuration(sessionStats?.[key]?.code_minutes || 0)}</p>
-               </div>
-               <div className="text-right">
-                  <p className="text-[10px] font-bold text-dark-muted uppercase tracking-tight">Conduite</p>
-                  <p className="text-sm font-bold text-dark">{loading ? '—' : formatDuration(sessionStats?.[key]?.seance_minutes || 0)}</p>
+               <div className={`w-12 h-12 rounded-[1.25rem] bg-${color === 'primary' ? 'primary-50' : 'accent-' + color + '/10'} flex items-center justify-center text-${color === 'primary' ? 'primary-500' : 'accent-' + color} shadow-sm border border-white`}>
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={icon} /></svg>
                </div>
             </div>
-          </div>
+            <div className="grid grid-cols-2 gap-4">
+               <div className="bg-surface-50 p-3 rounded-2xl border border-surface-100">
+                  <p className="text-[10px] font-black text-dark-muted uppercase tracking-widest leading-none mb-1">Code</p>
+                  <p className="text-sm font-black text-dark">{loading ? '—' : formatDuration(sessionStats?.[key]?.code_minutes || 0)}</p>
+               </div>
+               <div className="bg-surface-50 p-3 rounded-2xl border border-surface-100">
+                  <p className="text-[10px] font-black text-dark-muted uppercase tracking-widest leading-none mb-1">Conduite</p>
+                  <p className="text-sm font-black text-dark">{loading ? '—' : formatDuration(sessionStats?.[key]?.seance_minutes || 0)}</p>
+               </div>
+            </div>
+          </Card>
         ))}
       </div>
 

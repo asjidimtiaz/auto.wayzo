@@ -72,6 +72,7 @@ const api = {
     getByStudent: (studentId) => apiFetch(`/api/payments?studentId=${studentId}`),
     getAll: () => apiFetch('/api/payments'),
     delete: (id) => apiFetch(`/api/payments?id=${id}`, { method: 'DELETE' }),
+    generateReceipt: (paymentId) => apiFetch(`/api/payments/receipt?id=${paymentId}`, { method: 'POST' }),
   },
   paymentSchedules: {
     create: (studentId, schedules) =>

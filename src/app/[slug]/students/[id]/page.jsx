@@ -163,16 +163,26 @@ export default function StudentDetailPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         {[
-          { label: 'Total formation', value: formatCurrency(total), color: 'primary' },
-          { label: 'Versé', value: formatCurrency(paid), color: 'success' },
-          { label: 'Restant', value: balance > 0 ? formatCurrency(balance) : 'Soldé', color: balance > 0 ? 'danger' : 'success' },
-          { label: 'Présences', value: attendance.length, color: 'info' },
+          { label: 'Total formation', value: formatCurrency(total), color: 'primary', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 1v8m0 0v1' },
+          { label: 'Versé', value: formatCurrency(paid), color: 'success', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+          { label: 'Restant', value: balance > 0 ? formatCurrency(balance) : 'Soldé', color: balance > 0 ? 'danger' : 'success', icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+          { label: 'Présences', value: attendance.length, color: 'info', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
         ].map(s => {
-          const colors = { primary: 'border-primary-500 text-primary-500', success: 'border-accent-green text-accent-green', danger: 'border-accent-red text-accent-red', info: 'border-accent-blue text-accent-blue' };
+          const colorStyles = {
+            primary: 'bg-primary-50 text-primary-500',
+            success: 'bg-accent-green/10 text-accent-green',
+            danger: 'bg-accent-red/10 text-accent-red',
+            info: 'bg-accent-blue/10 text-accent-blue'
+          };
           return (
-            <div key={s.label} className={`bg-white rounded-2xl shadow-soft p-4 border-l-4 ${colors[s.color].split(' ')[0]}`}>
-              <p className="text-xs text-dark-muted mb-1">{s.label}</p>
-              <p className={`text-lg font-bold ${colors[s.color].split(' ')[1]}`}>{s.value}</p>
+            <div key={s.label} className="bg-white rounded-2xl shadow-soft p-4 flex items-center gap-4 border border-surface-50 hover:shadow-card transition-all group">
+              <div className={`w-12 h-12 rounded-[1.25rem] flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 ${colorStyles[s.color]}`}>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={s.icon} /></svg>
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-dark-muted uppercase tracking-widest">{s.label}</p>
+                <p className={`text-lg font-black mt-0.5 ${s.color === 'danger' ? 'text-accent-red' : s.color === 'success' ? 'text-accent-green' : 'text-dark'}`}>{s.value}</p>
+              </div>
             </div>
           );
         })}
@@ -197,11 +207,19 @@ export default function StudentDetailPage() {
 
       {/* Tabs */}
       <Card padding="none">
-        <div className="flex border-b border-surface-200 overflow-x-auto">
-          {TABS.map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`px-5 py-3.5 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${activeTab === tab ? 'border-primary-500 text-primary-500' : 'border-transparent text-dark-muted hover:text-dark'}`}>
-              {tab}
+        <div className="flex border-b border-surface-200 overflow-x-auto no-scrollbar">
+          {[
+            { id: 'Informations', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
+            { id: 'Paiements', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
+            { id: 'Présences', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+            { id: 'Stages', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+            { id: 'Documents', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+            { id: 'Incidents', icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+          ].map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              className={`px-6 py-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border-b-2 flex items-center gap-2 ${activeTab === tab.id ? 'border-primary-500 text-primary-500 bg-primary-50/50' : 'border-transparent text-dark-muted hover:text-dark hover:bg-surface-50'}`}>
+              <svg className={`w-4 h-4 ${activeTab === tab.id ? 'opacity-100' : 'opacity-40'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={tab.icon} /></svg>
+              {tab.id}
             </button>
           ))}
         </div>

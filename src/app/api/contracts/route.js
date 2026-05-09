@@ -10,14 +10,14 @@ import { uploadToStorage } from '@/lib/storage';
 export const dynamic = 'force-dynamic';
 
 // Draw right-aligned text
-function drawTextRight(page, text, x, y, size, font) {
+function drawTextRight(page, text, x, y, font, size) {
   if (!text) return;
   const width = font.widthOfTextAtSize(String(text), size);
   page.drawText(String(text), { x: x - width, y, size, font });
 }
 
 // Draw center-aligned text
-function drawTextCenter(page, text, centerX, y, size, font) {
+function drawTextCenter(page, text, centerX, y, font, size) {
   if (!text) return;
   const width = font.widthOfTextAtSize(String(text), size);
   page.drawText(String(text), { x: centerX - width / 2, y, size, font });
@@ -36,9 +36,10 @@ export async function POST(request) {
 
     const settings = (await db.getSettings(tenant.autoEcoleId)) || {};
     const override = overrideData || {};
+    const ae = await db.getAutoEcoleById(tenant.autoEcoleId);
 
     // Merge override with defaults from settings/student
-    const school_name     = override.school_name     !== undefined ? override.school_name     : settings.school_name     || '';
+    const school_name     = override.school_name     !== undefined ? override.school_name     : settings.school_name     || ae?.name || '';
     const address         = override.address         !== undefined ? override.address         : settings.address         || '';
     const phone           = override.phone           !== undefined ? override.phone           : settings.phone           || '';
     const email           = override.email           !== undefined ? override.email           : settings.email           || '';

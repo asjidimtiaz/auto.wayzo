@@ -46,6 +46,12 @@ export default function CalculatorPage() {
     installments: '3'
   });
 
+  const [paymentForm, setPaymentForm] = useState({
+    amount: '',
+    method: 'Cash',
+    notes: ''
+  });
+
   useEffect(() => {
     api.students.getAll().then(data => {
       setStudents(Array.isArray(data) ? data : []);
@@ -170,6 +176,54 @@ export default function CalculatorPage() {
         due_date: i.due
       })));
       notify.success('Plan de paiement enregistré');
+    } catch {
+      notify.error('Erreur lors de l\'enregistrement');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const generateContract = async () => {
+    if (!selectedStudent) return;
+    setSaving(true);
+    try {
+      const res = await api.contracts.generate(selectedStudent.id);
+      if (res.success) {
+        notify.success('Contrat généré');
+        window.open(res.path, '_blank');
+      } else {
+        notify.error('Erreur lors de la génération');
+      }
+    } catch {
+      notify.error('Erreur lors de la génération');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const recordPayment = async () => {
+    if (!selectedStudent || !paymentForm.amount) return notify.error('Veuillez saisir un montant');
+    setSaving(true);
+    try {
+      const res = await api.payments.create({
+        student_id: parseInt(studentForm.student_id),
+        amount: parseFloat(paymentForm.amount),
+        payment_method: paymentForm.method,
+        payment_date: today(),
+        notes: paymentForm.notes
+      });
+      if (res.id) {
+        notify.success('Paiement enregistré');
+        try {
+          const recu = await api.payments.generateReceipt(res.id);
+          if (recu.success) window.open(recu.path, '_blank');
+        } catch (e) {
+          console.error('Receipt generation failed', e);
+        }
+        const data = await api.students.getAll();
+        setStudents(Array.isArray(data) ? data : []);
+        setPaymentForm({ amount: '', method: 'Cash', notes: '' });
+      }
     } catch {
       notify.error('Erreur lors de l\'enregistrement');
     } finally {
@@ -358,65 +412,137 @@ export default function CalculatorPage() {
         </Card>
 
         {/* Student Installment Calculator */}
-        <Card>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-accent-green/10 flex items-center justify-center text-accent-green">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-            </div>
-            <h2 className="text-lg font-bold text-dark">Plan de Paiement Étudiant</h2>
-          </div>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="form-label">Étudiant</label>
-                <select 
-                  value={studentForm.student_id} 
-                  onChange={e => setStudentForm({...studentForm, student_id: e.target.value})} 
-                  className="form-select"
-                >
-                  <option value="">Sélectionner...</option>
-                  {students.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
-                </select>
+        <Card className="lg:col-span-2 overflow-hidden border-t-4 border-accent-green">
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-accent-green/10 flex items-center justify-center text-accent-green">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
               </div>
               <div>
-                <label className="form-label">Nombre d'échéances</label>
-                <input type="number" min="1" max="12" value={studentForm.installments} onChange={e => setStudentForm({...studentForm, installments: e.target.value})} className="form-input" />
+                <h2 className="text-lg font-black text-dark tracking-tight">Plan de Paiement & Contrats</h2>
+                <p className="text-xs text-dark-muted font-medium">Gérez les mensualités et générez les documents officiels</p>
               </div>
             </div>
 
-            {selectedStudent ? (
-              <div className="p-4 bg-surface-50 rounded-2xl border border-surface-200">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-sm font-bold text-dark-muted uppercase">Reste à payer</span>
-                  <span className="text-lg font-bold text-accent-red">{formatCurrency(selectedStudent.total_price - selectedStudent.paid_amount)}</span>
-                </div>
-                
-                <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
-                  {studentInstallments.map(i => (
-                    <div key={i.num} className="flex items-center justify-between p-2 bg-white rounded-lg border border-surface-100 text-xs">
-                      <span className="font-bold text-dark">Échéance {i.num}</span>
-                      <span className="font-bold text-primary-500">{formatCurrency(i.amount)}</span>
-                      <span className="text-dark-muted italic">{i.due}</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="md:col-span-1 space-y-4">
+                <div>
+                  <label className="form-label">Sélectionner l'étudiant</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-dark-muted">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                     </div>
-                  ))}
+                    <select 
+                      value={studentForm.student_id} 
+                      onChange={e => setStudentForm({...studentForm, student_id: e.target.value})} 
+                      className="form-select !pl-11"
+                    >
+                      <option value="">Sélectionner...</option>
+                      {students.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="form-label">Nombre d'échéances</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-dark-muted">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    </div>
+                    <input type="number" min="1" max="12" value={studentForm.installments} onChange={e => setStudentForm({...studentForm, installments: e.target.value})} className="form-input !pl-11" />
+                  </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-surface-200">
-                  <Button 
-                    onClick={saveSchedules}
-                    loading={saving}
-                    className="w-full"
-                  >
-                    Appliquer le Plan de Paiement
-                  </Button>
-                </div>
+                {selectedStudent && (
+                  <div className="p-4 bg-accent-green/5 rounded-2xl border border-accent-green/10">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-black text-accent-green uppercase tracking-widest">Reste à payer</span>
+                      <span className="text-xl font-black text-accent-green">{formatCurrency(selectedStudent.total_price - selectedStudent.paid_amount)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="p-12 text-center border-2 border-dashed border-surface-200 rounded-2xl">
-                <p className="text-sm text-dark-muted italic">Sélectionnez un étudiant pour simuler ses mensualités</p>
+
+              <div className="md:col-span-2">
+                {selectedStudent ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <h3 className="text-xs font-black text-dark-muted uppercase tracking-widest flex items-center gap-2">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 6h16M4 12h16m-7 6h7" /></svg>
+                        Calendrier Prévu
+                      </h3>
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                        {studentInstallments.map(i => (
+                          <div key={i.num} className="flex items-center justify-between p-3 bg-white rounded-xl border border-surface-100 shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <span className="w-6 h-6 rounded-lg bg-surface-100 flex items-center justify-center text-[10px] font-black text-dark-muted">{i.num}</span>
+                              <span className="text-sm font-bold text-dark">{formatCurrency(i.amount)}</span>
+                            </div>
+                            <span className="text-xs text-dark-muted font-medium">{new Date(i.due).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={saveSchedules} loading={saving} className="flex-1 !rounded-xl">
+                          Appliquer
+                        </Button>
+                        <Button onClick={generateContract} loading={saving} variant="secondary" className="flex-1 !rounded-xl" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>}>
+                          Contrat
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="p-5 bg-surface-50 rounded-[2rem] border border-surface-200 space-y-4">
+                      <h3 className="text-xs font-black text-dark uppercase tracking-widest text-center">Nouveau Règlement</h3>
+                      <div className="space-y-3">
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-dark-muted">
+                            <span className="text-xs font-bold">MAD</span>
+                          </div>
+                          <input 
+                            type="number" 
+                            placeholder="Montant" 
+                            className="form-input !pl-14 !h-12 !text-lg !font-bold" 
+                            value={paymentForm.amount}
+                            onChange={e => setPaymentForm({...paymentForm, amount: e.target.value})}
+                          />
+                        </div>
+                        <select 
+                          className="form-select !h-12 !font-bold"
+                          value={paymentForm.method}
+                          onChange={e => setPaymentForm({...paymentForm, method: e.target.value})}
+                        >
+                          <option value="Cash">💵 Espèces</option>
+                          <option value="Transfer">🏦 Virement</option>
+                          <option value="Cheque">✍️ Chèque</option>
+                          <option value="TPE">💳 Carte</option>
+                        </select>
+                        <textarea 
+                          placeholder="Notes ou référence..."
+                          className="form-input !h-20 py-3 text-sm"
+                          value={paymentForm.notes}
+                          onChange={e => setPaymentForm({...paymentForm, notes: e.target.value})}
+                        />
+                        <Button 
+                          onClick={recordPayment}
+                          loading={saving}
+                          className="w-full !h-14 !rounded-2xl !bg-accent-green !text-white !border-none hover:!bg-accent-green/90 shadow-lg shadow-accent-green/20"
+                          icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>}
+                        >
+                          Enregistrer & Reçu
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-surface-200 rounded-[2.5rem] bg-surface-50/50">
+                    <div className="w-16 h-16 bg-white rounded-2xl shadow-soft flex items-center justify-center text-surface-300 mb-4">
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    </div>
+                    <p className="text-sm text-dark-muted font-medium italic">Sélectionnez un étudiant pour simuler ses mensualités et gérer ses documents</p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </Card>
 

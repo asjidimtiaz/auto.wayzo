@@ -138,9 +138,18 @@ async function initDb() {
       web_reference VARCHAR(255),
       ville VARCHAR(100),
       autre_ville VARCHAR(100),
+      email VARCHAR(255),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
+  `);
+
+  await p.query(`
+    DO $$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'students' AND column_name = 'email') THEN
+        ALTER TABLE students ADD COLUMN email VARCHAR(255);
+      END IF;
+    END $$
   `);
 
   await p.query(`
@@ -567,8 +576,8 @@ async function createStudent(autoEcoleId, data) {
     INSERT INTO students (auto_ecole_id, qr_code, full_name, cin, phone, address, license_type,
       registration_date, status, training_start_date, training_duration_days,
       offer_id, total_price, interested_licenses, reminder_date, internal_notes,
-      profile_image, cin_document, birth_place, birth_date, ville, autre_ville)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+      profile_image, cin_document, birth_place, birth_date, ville, autre_ville, email)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
     RETURNING id
   `, [
     autoEcoleId, qrCode, data.full_name, data.cin || null, data.phone || null,
@@ -577,7 +586,7 @@ async function createStudent(autoEcoleId, data) {
     data.training_duration_days || 30, data.offer_id || null, data.total_price || 0,
     data.interested_licenses || null, data.reminder_date || null, data.internal_notes || null,
     data.profile_image || null, data.cin_document || null, data.birth_place || null,
-    data.birth_date || null, data.ville || null, data.autre_ville || null,
+    data.birth_date || null, data.ville || null, data.autre_ville || null, data.email || null,
   ]);
   return { id: row.id, qr_code: qrCode };
 }
@@ -590,8 +599,8 @@ async function updateStudent(id, autoEcoleId, data) {
       offer_id = $10, total_price = $11, interested_licenses = $12,
       reminder_date = $13, internal_notes = $14,
       birth_place = $15, birth_date = $16,
-      ville = $17, autre_ville = $18
-    WHERE id = $19 AND auto_ecole_id = $20
+      ville = $17, autre_ville = $18, email = $19
+    WHERE id = $20 AND auto_ecole_id = $21
   `, [
     data.full_name, data.cin || null, data.phone || null, data.address || null,
     data.license_type, data.registration_date, data.status,
@@ -599,7 +608,7 @@ async function updateStudent(id, autoEcoleId, data) {
     data.offer_id || null, data.total_price || 0, data.interested_licenses || null,
     data.reminder_date || null, data.internal_notes || null,
     data.birth_place || null, data.birth_date || null,
-    data.ville || null, data.autre_ville || null,
+    data.ville || null, data.autre_ville || null, data.email || null,
     id, autoEcoleId,
   ]);
 }

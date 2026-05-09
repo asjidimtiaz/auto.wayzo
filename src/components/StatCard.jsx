@@ -31,17 +31,27 @@ export default function StatCard({
   const cfg = colorMap[color] || colorMap.primary;
   const sz = sizeMap[size] || sizeMap.md;
 
+  const glowClass = {
+    primary: 'hover:shadow-primary-500/20',
+    success: 'hover:shadow-accent-green/20',
+    warning: 'hover:shadow-accent-yellow/20',
+    danger:  'hover:shadow-accent-red/20',
+    info:    'hover:shadow-accent-blue/20',
+    gray:    'hover:shadow-gray-400/20',
+  }[color];
+
   if (gradient) {
     return (
       <div
-        className={`bg-gradient-to-br ${cfg.gradient} rounded-2xl ${sz.padding} shadow-card ${onClick ? 'cursor-pointer hover:shadow-card-hover transition-shadow' : ''} ${className}`}
+        className={`relative overflow-hidden bg-gradient-to-br ${cfg.gradient} rounded-[2rem] ${sz.padding} shadow-lg ${onClick ? 'cursor-pointer hover:scale-[1.02] hover:shadow-xl transition-all duration-300' : ''} ${className}`}
         onClick={onClick}
       >
-        <p className={`text-white/80 font-medium ${sz.title}`}>{title}</p>
+        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
+        <p className={`relative z-10 text-white/80 font-bold uppercase tracking-wider ${sz.title}`}>{title}</p>
         {loading ? (
-          <div className="animate-pulse h-8 bg-white/20 rounded w-20 mt-2" />
+          <div className="animate-pulse h-8 bg-white/20 rounded-xl w-24 mt-2" />
         ) : (
-          <p className={`font-bold text-white mt-1 ${sz.value}`}>{value}</p>
+          <p className={`relative z-10 font-black text-white mt-1 tracking-tight ${sz.value}`}>{value}</p>
         )}
       </div>
     );
@@ -49,32 +59,34 @@ export default function StatCard({
 
   return (
     <div
-      className={`bg-white rounded-2xl shadow-soft ${sz.padding} ${onClick ? 'cursor-pointer hover:shadow-card-hover transition-shadow' : ''} ${className}`}
+      className={`relative overflow-hidden bg-white rounded-[2rem] border border-surface-100 shadow-soft transition-all duration-300 ${sz.padding} ${onClick ? `cursor-pointer hover:-translate-y-1 hover:shadow-xl ${glowClass}` : ''} ${className}`}
       onClick={onClick}
     >
-      <div className="flex items-center justify-between">
+      <div className={`absolute -right-6 -bottom-6 w-32 h-32 rounded-full opacity-[0.03] ${cfg.icon.split(' ')[0]}`} />
+      
+      <div className="flex items-center justify-between relative z-10">
         <div className="min-w-0">
-          <p className={`text-dark-muted font-medium ${sz.title}`}>{title}</p>
+          <p className={`text-dark-muted font-bold uppercase tracking-wider ${sz.title}`}>{title}</p>
           {loading ? (
-            <div className="animate-pulse h-8 bg-surface-200 rounded w-16 mt-1" />
+            <div className="animate-pulse h-9 bg-surface-100 rounded-xl w-20 mt-2" />
           ) : (
-            <p className={`font-bold text-dark mt-1 ${sz.value}`}>{value}</p>
+            <p className={`font-black text-dark mt-1 tracking-tight ${sz.value}`}>{value}</p>
           )}
           {trend !== undefined && (
-            <div className={`flex items-center gap-1 mt-2 ${trend > 0 ? 'text-accent-green' : trend < 0 ? 'text-accent-red' : 'text-dark-muted'}`}>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            <div className={`flex items-center gap-1.5 mt-2.5 px-2 py-0.5 rounded-full w-fit ${trend > 0 ? 'bg-accent-green/10 text-accent-green' : trend < 0 ? 'bg-accent-red/10 text-accent-red' : 'bg-surface-100 text-dark-muted'}`}>
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3}
                   d={trend >= 0 ? 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' : 'M13 17h8m0 0V9m0 8l-8-8-4 4-6-6'}
                 />
               </svg>
-              <span className="text-xs font-medium">
+              <span className="text-[10px] font-black uppercase">
                 {trend > 0 ? '+' : ''}{trend}% {trendLabel}
               </span>
             </div>
           )}
         </div>
         {icon && (
-          <div className={`${sz.icon} rounded-2xl ${cfg.icon} flex items-center justify-center flex-shrink-0 ml-4`}>
+          <div className={`${sz.icon} rounded-3xl ${cfg.icon} flex items-center justify-center flex-shrink-0 ml-4 shadow-inner border border-white/50`}>
             <span className={sz.iconInner}>{icon}</span>
           </div>
         )}
