@@ -286,7 +286,7 @@ export default function SlugLayout({ children }) {
 
   return (
     <TenantProvider slug={slug}>
-      <div className="flex h-screen overflow-hidden bg-surface-100">
+      <div className="flex h-screen overflow-hidden" style={{backgroundColor:'#f6f7f9'}}>
       {/* Desktop sidebar */}
       <div className="hidden lg:flex">
         <Sidebar slug={slug} onSchoolInfoLoaded={handleSchoolInfoLoaded} collapsed={collapsed} setCollapsed={setCollapsed} />

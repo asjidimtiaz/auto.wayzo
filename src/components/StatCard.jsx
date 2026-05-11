@@ -1,18 +1,54 @@
 'use client';
 
 const colorMap = {
-  primary: { icon: 'bg-primary-500/10 text-primary-500', gradient: 'from-primary-500 to-primary-400' },
-  success: { icon: 'bg-accent-green/10 text-accent-green', gradient: 'from-accent-green to-teal-300' },
-  warning: { icon: 'bg-accent-yellow/10 text-accent-yellow', gradient: 'from-accent-yellow to-amber-300' },
-  danger:  { icon: 'bg-accent-red/10 text-accent-red', gradient: 'from-accent-red to-red-300' },
-  info:    { icon: 'bg-accent-blue/10 text-accent-blue', gradient: 'from-accent-blue to-blue-300' },
-  gray:    { icon: 'bg-dark-muted/10 text-dark-muted', gradient: 'from-gray-400 to-gray-300' },
-};
-
-const sizeMap = {
-  sm: { padding: 'p-4', icon: 'w-10 h-10', iconInner: 'w-5 h-5', value: 'text-xl',  title: 'text-xs' },
-  md: { padding: 'p-5', icon: 'w-11 h-11', iconInner: 'w-5 h-5', value: 'text-2xl', title: 'text-sm' },
-  lg: { padding: 'p-6', icon: 'w-14 h-14', iconInner: 'w-7 h-7', value: 'text-3xl', title: 'text-base' },
+  primary: { 
+    icon: 'bg-blue-50 text-blue-600', 
+    gradient: 'from-blue-600 to-blue-500',
+    accent: 'bg-blue-600',
+    light: 'bg-blue-50',
+    text: 'text-blue-600',
+    border: 'border-blue-100',
+  },
+  success: { 
+    icon: 'bg-emerald-50 text-emerald-600', 
+    gradient: 'from-emerald-500 to-teal-400',
+    accent: 'bg-emerald-500',
+    light: 'bg-emerald-50',
+    text: 'text-emerald-600',
+    border: 'border-emerald-100',
+  },
+  warning: { 
+    icon: 'bg-amber-50 text-amber-600', 
+    gradient: 'from-amber-500 to-orange-400',
+    accent: 'bg-amber-500',
+    light: 'bg-amber-50',
+    text: 'text-amber-600',
+    border: 'border-amber-100',
+  },
+  danger: { 
+    icon: 'bg-red-50 text-red-500', 
+    gradient: 'from-red-500 to-rose-400',
+    accent: 'bg-red-500',
+    light: 'bg-red-50',
+    text: 'text-red-500',
+    border: 'border-red-100',
+  },
+  info: { 
+    icon: 'bg-sky-50 text-sky-600', 
+    gradient: 'from-sky-500 to-blue-400',
+    accent: 'bg-sky-500',
+    light: 'bg-sky-50',
+    text: 'text-sky-600',
+    border: 'border-sky-100',
+  },
+  gray: { 
+    icon: 'bg-gray-100 text-gray-500', 
+    gradient: 'from-gray-400 to-gray-300',
+    accent: 'bg-gray-400',
+    light: 'bg-gray-50',
+    text: 'text-gray-500',
+    border: 'border-gray-100',
+  },
 };
 
 export default function StatCard({
@@ -29,29 +65,21 @@ export default function StatCard({
   gradient = false,
 }) {
   const cfg = colorMap[color] || colorMap.primary;
-  const sz = sizeMap[size] || sizeMap.md;
-
-  const glowClass = {
-    primary: 'hover:shadow-primary-500/20',
-    success: 'hover:shadow-accent-green/20',
-    warning: 'hover:shadow-accent-yellow/20',
-    danger:  'hover:shadow-accent-red/20',
-    info:    'hover:shadow-accent-blue/20',
-    gray:    'hover:shadow-gray-400/20',
-  }[color];
 
   if (gradient) {
     return (
       <div
-        className={`relative overflow-hidden bg-gradient-to-br ${cfg.gradient} rounded-[2rem] ${sz.padding} shadow-lg ${onClick ? 'cursor-pointer hover:scale-[1.02] hover:shadow-xl transition-all duration-300' : ''} ${className}`}
+        className={`relative overflow-hidden bg-gradient-to-br ${cfg.gradient} rounded-2xl p-5 shadow-md ${onClick ? 'cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all duration-200' : ''} ${className}`}
         onClick={onClick}
       >
-        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
-        <p className={`relative z-10 text-white/80 font-bold uppercase tracking-wider ${sz.title}`}>{title}</p>
+        {/* Subtle top-right glow circle */}
+        <div className="absolute -right-6 -top-6 w-28 h-28 bg-white/10 rounded-full" />
+        <div className="absolute -right-2 -bottom-4 w-16 h-16 bg-white/5 rounded-full" />
+        <p className="relative z-10 text-white/75 text-xs font-semibold uppercase tracking-wider mb-2">{title}</p>
         {loading ? (
-          <div className="animate-pulse h-8 bg-white/20 rounded-xl w-24 mt-2" />
+          <div className="animate-pulse h-7 bg-white/25 rounded-lg w-28 mt-1" />
         ) : (
-          <p className={`relative z-10 font-black text-white mt-1 tracking-tight ${sz.value}`}>{value}</p>
+          <p className="relative z-10 font-bold text-white text-xl tracking-tight">{value}</p>
         )}
       </div>
     );
@@ -59,35 +87,33 @@ export default function StatCard({
 
   return (
     <div
-      className={`relative overflow-hidden bg-white rounded-[2rem] border border-surface-100 shadow-soft transition-all duration-300 ${sz.padding} ${onClick ? `cursor-pointer hover:-translate-y-1 hover:shadow-xl ${glowClass}` : ''} ${className}`}
+      className={`relative overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-200 p-5 ${onClick ? `cursor-pointer hover:shadow-md hover:-translate-y-0.5` : ''} ${className}`}
       onClick={onClick}
     >
-      <div className={`absolute -right-6 -bottom-6 w-32 h-32 rounded-full opacity-[0.03] ${cfg.icon.split(' ')[0]}`} />
-      
-      <div className="flex items-center justify-between relative z-10">
-        <div className="min-w-0">
-          <p className={`text-dark-muted font-bold uppercase tracking-wider ${sz.title}`}>{title}</p>
+      <div className="flex items-start justify-between">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{title}</p>
           {loading ? (
-            <div className="animate-pulse h-9 bg-surface-100 rounded-xl w-20 mt-2" />
+            <div className="animate-pulse h-8 bg-gray-100 rounded-lg w-20 mt-1" />
           ) : (
-            <p className={`font-black text-dark mt-1 tracking-tight ${sz.value}`}>{value}</p>
+            <p className="font-bold text-gray-900 text-2xl tracking-tight leading-none">{value}</p>
           )}
-          {trend !== undefined && (
-            <div className={`flex items-center gap-1.5 mt-2.5 px-2 py-0.5 rounded-full w-fit ${trend > 0 ? 'bg-accent-green/10 text-accent-green' : trend < 0 ? 'bg-accent-red/10 text-accent-red' : 'bg-surface-100 text-dark-muted'}`}>
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3}
+          {trend !== undefined && !loading && (
+            <div className={`flex items-center gap-1 mt-2 ${trend >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
                   d={trend >= 0 ? 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' : 'M13 17h8m0 0V9m0 8l-8-8-4 4-6-6'}
                 />
               </svg>
-              <span className="text-[10px] font-black uppercase">
+              <span className="text-[10px] font-bold uppercase tracking-wide">
                 {trend > 0 ? '+' : ''}{trend}% {trendLabel}
               </span>
             </div>
           )}
         </div>
         {icon && (
-          <div className={`${sz.icon} rounded-3xl ${cfg.icon} flex items-center justify-center flex-shrink-0 ml-4 shadow-inner border border-white/50`}>
-            <span className={sz.iconInner}>{icon}</span>
+          <div className={`w-10 h-10 rounded-xl ${cfg.icon} flex items-center justify-center flex-shrink-0 ml-3`}>
+            <span className="w-5 h-5 block">{icon}</span>
           </div>
         )}
       </div>

@@ -1,20 +1,20 @@
 'use client';
 
 const variants = {
-  primary:   'bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-400 shadow-blue shadow-md hover:shadow-lg',
-  secondary: 'bg-white text-dark border border-surface-300 hover:bg-surface-50 focus:ring-primary-400',
-  success:   'bg-accent-green text-white hover:bg-[#00a383] focus:ring-accent-green',
-  danger:    'bg-accent-red text-white hover:bg-red-600 focus:ring-accent-red',
-  warning:   'bg-accent-yellow text-white hover:bg-amber-500 focus:ring-accent-yellow',
-  ghost:     'text-dark-light hover:bg-surface-100 focus:ring-primary-400',
+  primary:   'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-sm hover:shadow-md',
+  secondary: 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 focus:ring-blue-400',
+  success:   'bg-emerald-500 text-white hover:bg-emerald-600 focus:ring-emerald-500',
+  danger:    'bg-red-500 text-white hover:bg-red-600 focus:ring-red-500',
+  warning:   'bg-amber-500 text-white hover:bg-amber-600 focus:ring-amber-500',
+  ghost:     'text-gray-500 hover:bg-gray-100 focus:ring-blue-400',
 };
 
 const sizes = {
-  xs: 'px-2 py-1 text-xs',
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-sm',
-  lg: 'px-5 py-2.5 text-base',
-  xl: 'px-6 py-3 text-lg',
+  xs: 'px-2.5 py-1 text-xs rounded-lg',
+  sm: 'px-3 py-1.5 text-sm rounded-lg',
+  md: 'px-4 py-2 text-sm rounded-xl',
+  lg: 'px-5 py-2.5 text-base rounded-xl',
+  xl: 'px-6 py-3 text-lg rounded-xl',
 };
 
 export default function Button({
@@ -31,7 +31,7 @@ export default function Button({
 }) {
   return (
     <button
-      className={`inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
+      className={`inline-flex items-center justify-center font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
       disabled={disabled || loading}
       {...props}
     >
