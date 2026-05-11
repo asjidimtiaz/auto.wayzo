@@ -307,8 +307,8 @@ export default function SlugLayout({ children }) {
           logoUrl={logoUrl}
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
         />
-        <main className="flex-1 overflow-auto">
-          <div className="p-4 lg:p-6">{children}</div>
+        <main className="flex-1 overflow-auto" style={{ background: 'var(--surface)' }}>
+          <div className="p-5 lg:p-7 max-w-[1400px]">{children}</div>
         </main>
       </div>
     </div>
