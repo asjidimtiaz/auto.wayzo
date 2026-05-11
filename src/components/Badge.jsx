@@ -1,20 +1,20 @@
 'use client';
 
 const variantStyles = {
-  success: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-  warning: 'bg-amber-50 text-amber-700 border-amber-100',
-  danger:  'bg-red-50 text-red-600 border-red-100',
-  info:    'bg-blue-50 text-blue-700 border-blue-100',
-  gray:    'bg-gray-100 text-gray-500 border-gray-200',
-  primary: 'bg-blue-50 text-blue-700 border-blue-100',
-  purple:  'bg-violet-50 text-violet-700 border-violet-100',
-  orange:  'bg-orange-50 text-orange-700 border-orange-100',
+  success: 'bg-[#dcfce7] text-[#16a34a]',
+  warning: 'bg-[#fef9c3] text-[#b45309]',
+  danger:  'bg-[#fee2e2] text-[#dc2626]',
+  info:    'bg-[#dbeafe] text-[#1d4ed8]',
+  gray:    'bg-[#f1f5f9] text-[#64748b]',
+  primary: 'bg-[#dbeafe] text-[#1d4ed8]',
+  purple:  'bg-[#ede9fe] text-[#7c3aed]',
+  orange:  'bg-[#ffedd5] text-[#c2410c]',
 };
 
 const sizeStyles = {
-  sm: 'px-2 py-0.5 text-[10px]',
-  md: 'px-2.5 py-0.5 text-xs',
-  lg: 'px-3 py-1 text-sm',
+  sm: 'px-2 py-0.5 text-[10.5px]',
+  md: 'px-2.5 py-0.5 text-[11.5px]',
+  lg: 'px-3 py-1 text-xs',
 };
 
 const dotColors = {
@@ -34,7 +34,7 @@ export default function Badge({
   className = '',
 }) {
   return (
-    <span className={`inline-flex items-center font-medium rounded-lg border ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}>
+    <span className={`inline-flex items-center font-semibold rounded-md ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}>
       {dot && (
         <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${dotColors[variant] || 'bg-gray-400'}`} />
       )}

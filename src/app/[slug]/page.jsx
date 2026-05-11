@@ -101,12 +101,12 @@ export default function DashboardPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-[22px] font-extrabold text-[#0f172a] tracking-tight">
             Bonjour, <span className="text-blue-600">{schoolName || 'Admin'}</span> 👋
           </h1>
-          <p className="text-sm text-gray-400 mt-0.5">Voici ce qui se passe dans votre auto-école aujourd'hui.</p>
+          <p className="text-sm text-[#94a3b8] mt-1">Voici ce qui se passe dans votre auto-école aujourd'hui.</p>
         </div>
-        <div className="inline-flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-4 py-2.5 shadow-sm self-start sm:self-auto">
+        <div className="inline-flex items-center gap-2 bg-white border border-[#eef1f7] rounded-xl px-4 py-2.5 self-start sm:self-auto">
           <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
@@ -160,11 +160,11 @@ export default function DashboardPage() {
           { label: 'Semaine', key: 'week', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', color: 'text-blue-600 bg-blue-50' },
           { label: 'Ce Mois', key: 'month', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', color: 'text-sky-600 bg-sky-50' },
         ].map(({ label, key, icon, color }) => (
-          <div key={key} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div key={key} className="bg-white rounded-2xl border border-[#eef1f7] p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{label}</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-[22px] font-extrabold text-[#0f172a] tracking-tight">
                   {loading ? <span className="inline-block animate-pulse bg-gray-100 rounded-lg h-7 w-20 align-middle" /> : formatDuration(sessionStats?.[key]?.completed_minutes)}
                 </p>
               </div>
@@ -189,15 +189,15 @@ export default function DashboardPage() {
       </div>
 
       {/* Alerts */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+      <div className="bg-white rounded-2xl border border-[#eef1f7] overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef1f7]">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
               <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
             </div>
-            <h3 className="text-base font-semibold text-gray-900">
+            <h3 className="text-sm font-semibold text-[#0f172a]">
               Alertes {!loading && `(${stats?.alertsCounts?.total || alerts.length})`}
             </h3>
             {!loading && stats?.alertsCounts?.danger > 0 && (
@@ -244,15 +244,15 @@ export default function DashboardPage() {
 
       {/* Today's stages */}
       {!loading && stats?.todayStages?.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="bg-white rounded-2xl border border-[#eef1f7] overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef1f7]">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
                 <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3 className="text-base font-semibold text-gray-900">Séances Aujourd'hui ({stats.todayStages.length})</h3>
+              <h3 className="text-sm font-semibold text-[#0f172a]">Séances Aujourd'hui ({stats.todayStages.length})</h3>
             </div>
             <Link href={`/${slug}/stages`} className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">Gérer →</Link>
           </div>
@@ -275,12 +275,12 @@ export default function DashboardPage() {
 
       {/* Recent students + payments */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <h3 className="text-base font-semibold text-gray-900">Étudiants Récents</h3>
+        <div className="bg-white rounded-2xl border border-[#eef1f7] overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef1f7]">
+            <h3 className="text-sm font-semibold text-[#0f172a]">Étudiants Récents</h3>
             <Link href={`/${slug}/students`} className="text-xs font-semibold text-blue-600 hover:text-blue-700">Voir tout →</Link>
           </div>
-          <div className="px-4 divide-y divide-gray-50">
+          <div className="px-4 divide-y divide-[#f4f6fb]">
             {loading ? (
               [0,1,2,3,4].map(i => <SkeletonRow key={i} />)
             ) : !stats?.recentStudents?.length ? (
@@ -308,12 +308,12 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <h3 className="text-base font-semibold text-gray-900">Paiements Récents</h3>
+        <div className="bg-white rounded-2xl border border-[#eef1f7] overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef1f7]">
+            <h3 className="text-sm font-semibold text-[#0f172a]">Paiements Récents</h3>
             <Link href={`/${slug}/payments`} className="text-xs font-semibold text-blue-600 hover:text-blue-700">Voir tout →</Link>
           </div>
-          <div className="px-4 divide-y divide-gray-50">
+          <div className="px-4 divide-y divide-[#f4f6fb]">
             {loading ? (
               [0,1,2,3,4].map(i => <SkeletonRow key={i} />)
             ) : !stats?.recentPayments?.length ? (
@@ -339,9 +339,9 @@ export default function DashboardPage() {
 
         {/* Upcoming reminders */}
         {!loading && stats?.upcomingReminders?.length > 0 && (
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h3 className="text-base font-semibold text-gray-900">Rappels à Venir</h3>
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-[#eef1f7] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#eef1f7]">
+              <h3 className="text-sm font-semibold text-[#0f172a]">Rappels à Venir</h3>
             </div>
             <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
               {stats.upcomingReminders.map(reminder => (

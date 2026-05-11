@@ -1,20 +1,29 @@
 'use client';
 
 const variants = {
-  primary:   'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-sm hover:shadow-md',
-  secondary: 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 focus:ring-blue-400',
-  success:   'bg-emerald-500 text-white hover:bg-emerald-600 focus:ring-emerald-500',
-  danger:    'bg-red-500 text-white hover:bg-red-600 focus:ring-red-500',
-  warning:   'bg-amber-500 text-white hover:bg-amber-600 focus:ring-amber-500',
-  ghost:     'text-gray-500 hover:bg-gray-100 focus:ring-blue-400',
+  primary:   'bg-blue-600 text-white border-blue-600 hover:bg-blue-700 hover:border-blue-700',
+  secondary: 'bg-white text-slate-600 border-[#e4e8f0] hover:bg-[#f8fafd] hover:border-[#c8d0e0]',
+  success:   'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700',
+  danger:    'bg-red-600 text-white border-red-600 hover:bg-red-700',
+  warning:   'bg-amber-500 text-white border-amber-500 hover:bg-amber-600',
+  ghost:     'bg-transparent text-slate-500 border-transparent hover:bg-slate-100',
+};
+
+const shadows = {
+  primary:   'hover:shadow-[0_4px_12px_rgba(37,99,235,0.3)]',
+  secondary: '',
+  success:   'hover:shadow-[0_4px_12px_rgba(5,150,105,0.28)]',
+  danger:    'hover:shadow-[0_4px_12px_rgba(220,38,38,0.25)]',
+  warning:   '',
+  ghost:     '',
 };
 
 const sizes = {
-  xs: 'px-2.5 py-1 text-xs rounded-lg',
-  sm: 'px-3 py-1.5 text-sm rounded-lg',
-  md: 'px-4 py-2 text-sm rounded-xl',
-  lg: 'px-5 py-2.5 text-base rounded-xl',
-  xl: 'px-6 py-3 text-lg rounded-xl',
+  xs: 'h-7 px-2.5 text-xs rounded-lg',
+  sm: 'h-8 px-3 text-xs rounded-lg',
+  md: 'h-[38px] px-4 text-[13.5px] rounded-xl',
+  lg: 'h-11 px-5 text-sm rounded-xl',
+  xl: 'h-12 px-6 text-base rounded-xl',
 };
 
 export default function Button({
@@ -31,7 +40,7 @@ export default function Button({
 }) {
   return (
     <button
-      className={`inline-flex items-center justify-center font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
+      className={`inline-flex items-center justify-center font-semibold transition-all duration-150 border focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${shadows[variant]} ${sizes[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
       disabled={disabled || loading}
       {...props}
     >
@@ -45,9 +54,9 @@ export default function Button({
         </>
       ) : (
         <>
-          {icon && iconPosition === 'left' && <span className="mr-2">{icon}</span>}
+          {icon && iconPosition === 'left' && <span className="mr-1.5 flex items-center">{icon}</span>}
           {children}
-          {icon && iconPosition === 'right' && <span className="ml-2">{icon}</span>}
+          {icon && iconPosition === 'right' && <span className="ml-1.5 flex items-center">{icon}</span>}
         </>
       )}
     </button>
