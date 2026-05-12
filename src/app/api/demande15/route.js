@@ -33,18 +33,19 @@ export async function POST(request) {
     const exam_date      = override.exam_date      || '';
     const requested_date = override.requested_date || '';
 
-    // Load template
-    const templatePath = path.join(process.cwd(), 'public', 'demande avancementv15 jours.pdf');
-    if (!fs.existsSync(templatePath)) {
-      throw new Error('Modèle introuvable: ' + templatePath);
-    }
-    const templateBytes = fs.readFileSync(templatePath);
+    const baseUrl = new URL(request.url).origin;
 
-    // Load fonts
-    const fontPath   = path.join(process.cwd(), 'public', 'fonts', 'arial.ttf');
-    const fontBdPath = path.join(process.cwd(), 'public', 'fonts', 'arialbd.ttf');
-    const fontBytes   = fs.readFileSync(fontPath);
-    const fontBdBytes = fs.readFileSync(fontBdPath);
+    // Load template via HTTP
+    const templateRes = await fetch(`${baseUrl}/demande avancementv15 jours.pdf`);
+    if (!templateRes.ok) throw new Error('Modèle introuvable');
+    const templateBytes = await templateRes.arrayBuffer();
+
+    // Load fonts via HTTP
+    const fontRes = await fetch(`${baseUrl}/fonts/arial.ttf`);
+    const fontBdRes = await fetch(`${baseUrl}/fonts/arialbd.ttf`);
+    if (!fontRes.ok || !fontBdRes.ok) throw new Error('Polices introuvables');
+    const fontBytes = await fontRes.arrayBuffer();
+    const fontBdBytes = await fontBdRes.arrayBuffer();
 
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
