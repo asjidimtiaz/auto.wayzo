@@ -24,7 +24,17 @@ export async function DELETE(req) {
   try {
     const ctx = await requireTenant(req);
     if (!ctx) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    await db.deleteDocument(Number(new URL(req.url).searchParams.get('id')), ctx.autoEcoleId);
+    const { searchParams } = new URL(req.url);
+    const action = searchParams.get('action');
+    const studentId = searchParams.get('studentId');
+    const id = searchParams.get('id');
+
+    if (action === 'deleteAll' && studentId) {
+      await db.deleteDocumentsByStudent(Number(studentId), ctx.autoEcoleId);
+    } else if (id) {
+      await db.deleteDocument(Number(id), ctx.autoEcoleId);
+    }
+
     return NextResponse.json({ success: true });
   } catch (err) { console.error(err); return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 }); }
 }

@@ -1119,6 +1119,10 @@ async function deleteDocument(id, autoEcoleId) {
   return execute('DELETE FROM documents WHERE id = $1 AND auto_ecole_id = $2', [id, autoEcoleId]);
 }
 
+async function deleteDocumentsByStudent(studentId, autoEcoleId) {
+  return execute('DELETE FROM documents WHERE student_id = $1 AND auto_ecole_id = $2', [studentId, autoEcoleId]);
+}
+
 async function getAllDocuments(autoEcoleId) {
   return query('SELECT d.*, s.full_name FROM documents d JOIN students s ON d.student_id = s.id WHERE d.auto_ecole_id = $1 ORDER BY d.created_at DESC', [autoEcoleId]);
 }
@@ -1381,7 +1385,7 @@ module.exports = {
   getAllAlerts, getAlertsCounts,
   generateInvoiceNumber, createInvoice, getInvoiceById, getInvoicesByStudent, getAllInvoices,
   updateInvoiceStatus, deleteInvoice,
-  createDocument, getDocumentsByStudent, getDocumentById, getDocumentByPath, deleteDocument, getAllDocuments,
+  createDocument, getDocumentsByStudent, getDocumentById, getDocumentByPath, deleteDocument, deleteDocumentsByStudent, getAllDocuments,
   getAllOffers, createOffer, updateOffer, deleteOffer,
   getDashboardStats, getSettings, updateSettings,
   createIncident, getIncidentsByStudent, getAllIncidents, getUnresolvedIncidents,

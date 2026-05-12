@@ -63,7 +63,7 @@ function Sidebar({ slug, onSchoolInfoLoaded, collapsed, setCollapsed }) {
 
   return (
     <aside
-      className={`flex flex-col transition-all duration-300 flex-shrink-0 ${collapsed ? 'w-[72px]' : 'w-64'} shadow-xl z-[10001] relative bg-primary-600`}
+      className={`flex flex-col transition-all duration-300 flex-shrink-0 ${collapsed ? 'w-[72px]' : 'w-64'} shadow-xl z-20 relative bg-primary-600`}
     >
       {/* Header */}
       {collapsed ? (
@@ -218,7 +218,7 @@ function Sidebar({ slug, onSchoolInfoLoaded, collapsed, setCollapsed }) {
 
 function MobileHeader({ schoolName, logoUrl, onToggleSidebar }) {
   return (
-    <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm">
+    <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm">
       <div className="flex items-center justify-between px-4 h-14">
         <div className="flex items-center gap-3 min-w-0">
           <button
@@ -286,7 +286,7 @@ export default function SlugLayout({ children }) {
 
   return (
     <TenantProvider slug={slug}>
-      <div className="flex h-screen overflow-hidden" style={{backgroundColor:'#f6f7f9'}}>
+      <div className="flex h-screen overflow-hidden" style={{backgroundColor:'#f1f4f9'}}>
       {/* Desktop sidebar */}
       <div className="hidden lg:flex">
         <Sidebar slug={slug} onSchoolInfoLoaded={handleSchoolInfoLoaded} collapsed={collapsed} setCollapsed={setCollapsed} />
@@ -307,7 +307,7 @@ export default function SlugLayout({ children }) {
           logoUrl={logoUrl}
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
         />
-        <main className="flex-1 overflow-auto" style={{ background: '#f0f2f7' }}>
+      <main className="flex-1 overflow-auto" style={{ background: '#f1f4f9' }}>
           <div className="p-5 lg:p-7 max-w-[1400px]">{children}</div>
         </main>
       </div>

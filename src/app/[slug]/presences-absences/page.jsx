@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
 import Button from '@/components/Button';
+import StatCard from '@/components/StatCard';
 import { formatDate } from '@/lib/utils';
 
 export default function PresencesAbsencesPage() {
@@ -60,23 +61,18 @@ export default function PresencesAbsencesPage() {
   return (
     <div className="animate-fadeIn space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-dark">Présences & Absences</h1>
-          <p className="text-sm text-dark-muted">Suivi des présences des étudiants en formation</p>
+          <h1 className="text-[22px] font-extrabold tracking-tight" style={{color:'#0d1b2e'}}>
+            Présences & Absences
+          </h1>
+          <p className="text-sm mt-1" style={{color:'#7f93ae'}}>Suivi quotidien des présences de vos étudiants.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative inline-block text-left">
-            <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-dark bg-white rounded-xl shadow-soft border border-surface-200 hover:bg-surface-50 transition-all">
-              <svg className="w-4 h-4 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              Exporter
-              <svg className="w-4 h-4 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-            </button>
-          </div>
+        <div className="flex items-center gap-2">
           <Button 
             onClick={() => router.push(`/${slug}/attendance`)}
             icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>}
-            className="!bg-primary-500 shadow-purple"
+            className="shadow-lg shadow-blue-500/20"
           >
             Scanner QR
           </Button>
@@ -84,23 +80,11 @@ export default function PresencesAbsencesPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Étudiants', value: stats.total, color: 'text-primary-500', bg: 'bg-primary-50', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
-          { label: 'Présents Aujourd\'hui', value: stats.presents, color: 'text-accent-green', bg: 'bg-accent-green/10', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-          { label: 'Absents Aujourd\'hui', value: stats.absents, color: 'text-accent-red', bg: 'bg-accent-red/10', icon: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z' },
-          { label: 'Taux de Présence', value: `${stats.rate}%`, color: 'text-accent-yellow', bg: 'bg-accent-yellow/10', icon: 'M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z' },
-        ].map((s) => (
-          <div key={s.label} className="bg-white rounded-3xl shadow-soft p-6 flex items-center justify-between group hover:shadow-card transition-all">
-            <div>
-              <p className="text-xs font-bold text-dark-muted mb-1">{s.label}</p>
-              <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
-            </div>
-            <div className={`w-12 h-12 rounded-2xl ${s.bg} flex items-center justify-center`}>
-              <svg className={`w-6 h-6 ${s.color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={s.icon} /></svg>
-            </div>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Total Étudiants" value={loading ? null : stats.total} loading={loading} color="primary" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>} />
+        <StatCard title="Présents" value={loading ? null : stats.presents} loading={loading} color="success" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+        <StatCard title="Absents" value={loading ? null : stats.absents} loading={loading} color="danger" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+        <StatCard title="Taux" value={loading ? null : `${stats.rate}%`} loading={loading} color="warning" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>} />
       </div>
 
       {/* Filter & Toggle Bar */}

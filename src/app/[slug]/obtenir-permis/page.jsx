@@ -7,6 +7,7 @@ import { useNotification } from '@/lib/notification';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
 import Button from '@/components/Button';
+import StatCard from '@/components/StatCard';
 import Pagination from '@/components/Pagination';
 import { formatDate } from '@/lib/utils';
 
@@ -61,29 +62,24 @@ export default function ObtenirPermisPage() {
   return (
     <div className="animate-fadeIn space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-dark">Permis Obtenus</h1>
-          <p className="text-sm text-dark-muted">Étudiants ayant obtenu leur permis - Envoyer de nouvelles offres</p>
+          <h1 className="text-[22px] font-extrabold tracking-tight" style={{color:'#0d1b2e'}}>
+            Permis Obtenus
+          </h1>
+          <p className="text-sm mt-1" style={{color:'#7f93ae'}}>Historique des étudiants ayant réussi leur examen.</p>
         </div>
-        <div className="bg-accent-green/10 text-accent-green px-4 py-2 rounded-xl font-bold text-sm">
+        <div className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl font-bold text-sm border border-emerald-100">
           {students.length} permis obtenus
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Permis A', value: stats.A },
-          { label: 'Permis B', value: stats.B },
-          { label: 'Permis C', value: stats.C },
-          { label: 'Permis D', value: stats.D },
-        ].map((s) => (
-          <div key={s.label} className="bg-white rounded-3xl shadow-soft p-6 group hover:shadow-card transition-all">
-            <p className="text-xs font-bold text-primary-500 mb-1">{s.label}</p>
-            <p className="text-3xl font-bold text-dark">{loading ? '—' : s.value}</p>
-          </div>
-        ))}
+        <StatCard title="Permis A" value={loading ? null : stats.A} loading={loading} color="primary" />
+        <StatCard title="Permis B" value={loading ? null : stats.B} loading={loading} color="success" />
+        <StatCard title="Permis C" value={loading ? null : stats.C} loading={loading} color="warning" />
+        <StatCard title="Permis D" value={loading ? null : stats.D} loading={loading} color="info" />
       </div>
 
       {/* Filter Bar */}

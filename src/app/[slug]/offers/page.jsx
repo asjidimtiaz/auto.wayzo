@@ -55,14 +55,18 @@ export default function OffersPage() {
 
   return (
     <div className="animate-fadeIn">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <p className="text-xs font-medium text-dark-muted tracking-wider uppercase">Configuration</p>
-          <h1 className="text-2xl font-bold text-dark">Offres de Formation</h1>
+          <h1 className="text-[22px] font-extrabold tracking-tight" style={{color:'#0d1b2e'}}>
+            Offres de Formation
+          </h1>
+          <p className="text-sm mt-1" style={{color:'#7f93ae'}}>Configurez les différentes offres et tarifs de votre auto-école.</p>
         </div>
-        <Button onClick={openAdd} icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>}>
-          Nouvelle offre
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={openAdd} icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>}>
+            Nouvelle offre
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -97,21 +101,32 @@ export default function OffersPage() {
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content !max-w-md" onClick={e => e.stopPropagation()}>
+          <div className="modal-content !max-w-2xl" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="text-xl font-bold text-dark">{editOffer ? 'Modifier l\'offre' : 'Nouvelle offre'}</h2>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-xl hover:bg-surface-100 text-dark-muted transition-colors"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-              <div className="modal-body space-y-4">
-                <div><label className="form-label">Nom de l'offre *</label><input {...F('name')} required className="form-input" placeholder="Ex: Formation Permis B Standard" /></div>
-                <div><label className="form-label">Type de permis *</label><select {...F('license_type')} required className="form-select">{LICENSE_TYPES.map(l => <option key={l} value={l}>Permis {l}</option>)}</select></div>
-                <div><label className="form-label">Prix (MAD) *</label><input type="number" min="0" step="0.01" {...F('price')} required className="form-input" placeholder="0.00" /></div>
-                <div><label className="form-label">Description</label><textarea {...F('description')} rows={3} className="form-textarea resize-none" placeholder="Description de l'offre..." /></div>
+              <div className="modal-body space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                   <div className="md:col-span-2">
+                     <label className="form-label">Nom de l'offre *</label>
+                     <input {...F('name')} required className="form-input" placeholder="Ex: Formation Permis B Standard" />
+                   </div>
+                   <div>
+                     <label className="form-label">Type de permis *</label>
+                     <select {...F('license_type')} required className="form-select">{LICENSE_TYPES.map(l => <option key={l} value={l}>Permis {l}</option>)}</select>
+                   </div>
+                   <div>
+                     <label className="form-label">Prix (MAD) *</label>
+                     <input type="number" min="0" step="0.01" {...F('price')} required className="form-input font-bold" placeholder="0.00" />
+                   </div>
+                </div>
+                <div><label className="form-label">Description</label><textarea {...F('description')} rows={3} className="form-textarea resize-none" placeholder="Description de l'offre et avantages inclus..." /></div>
               </div>
               <div className="modal-footer">
                 <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>Annuler</Button>
-                <Button type="submit" loading={saving}>{editOffer ? 'Enregistrer' : 'Créer l\'offre'}</Button>
+                <Button type="submit" loading={saving}>{editOffer ? 'Enregistrer les modifications' : 'Créer l\'offre'}</Button>
               </div>
             </form>
           </div>

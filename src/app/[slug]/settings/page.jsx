@@ -60,9 +60,8 @@ export default function SettingsPage() {
   }
 
   const Section = ({ title, icon, children }) => (
-    <Card className="mb-6">
-      <Card.Header title={<div className="flex items-center gap-2"><span className="text-primary-500">{icon}</span>{title}</div>} />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>
+    <Card className="mb-6" title={title} icon={icon}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">{children}</div>
     </Card>
   );
 
@@ -82,9 +81,13 @@ export default function SettingsPage() {
 
   return (
     <div className="animate-fadeIn">
-      <div className="mb-6">
-        <p className="text-xs font-medium text-dark-muted tracking-wider uppercase">Configuration</p>
-        <h1 className="text-2xl font-bold text-dark">Paramètres de l'École</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div>
+          <h1 className="text-[22px] font-extrabold tracking-tight" style={{color:'#0d1b2e'}}>
+            Paramètres
+          </h1>
+          <p className="text-sm mt-1" style={{color:'#7f93ae'}}>Configurez les informations de votre auto-école.</p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit}>

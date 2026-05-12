@@ -8,6 +8,7 @@ import { useConfirm } from '@/lib/confirm';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
 import Button from '@/components/Button';
+import StatCard from '@/components/StatCard';
 import EmptyState from '@/components/EmptyState';
 import Pagination from '@/components/Pagination';
 import { formatDate, formatDuration, today } from '@/lib/utils';
@@ -95,34 +96,24 @@ export default function StagesPage() {
 
   return (
     <div className="animate-fadeIn">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <p className="text-xs font-medium text-dark-muted tracking-wider uppercase">Planning</p>
-          <h1 className="text-2xl font-bold text-dark">Stages & Examens</h1>
+          <h1 className="text-[22px] font-extrabold tracking-tight" style={{color:'#0d1b2e'}}>
+            Stages & Examens
+          </h1>
+          <p className="text-sm mt-1" style={{color:'#7f93ae'}}>Planifiez et suivez les séances de formation et les examens.</p>
         </div>
-        <Button onClick={openAdd} icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>}>
+        <Button onClick={openAdd} icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>} className="shadow-lg shadow-blue-500/20">
           Nouveau stage
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: 'Total Séances', value: filtered.length, color: 'text-primary-500', bg: 'bg-primary-50', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-          { label: 'Heures de Formation', value: sessionStats ? formatDuration(sessionStats.totalMinutes) : '0h', color: 'text-accent-green', bg: 'bg-accent-green/10', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
-          { label: 'Examens Réussis', value: stages.filter(s => s.status === 'Réussi').length, color: 'text-accent-blue', bg: 'bg-accent-blue/10', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-          { label: 'Examens Échoués', value: stages.filter(s => s.status === 'Échoué').length, color: 'text-accent-red', bg: 'bg-accent-red/10', icon: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z' },
-        ].map((s) => (
-          <div key={s.label} className="bg-white rounded-3xl shadow-soft p-6 flex items-center justify-between group hover:shadow-card transition-all">
-            <div>
-              <p className="text-xs font-bold text-dark-muted mb-1">{s.label}</p>
-              <p className={`text-3xl font-bold ${s.color}`}>{loading ? '—' : s.value}</p>
-            </div>
-            <div className={`w-12 h-12 rounded-2xl ${s.bg} flex items-center justify-center`}>
-              <svg className={`w-6 h-6 ${s.color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={s.icon} /></svg>
-            </div>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard title="Total Séances" value={loading ? null : filtered.length} loading={loading} color="primary" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>} />
+        <StatCard title="Heures de Formation" value={loading ? null : (sessionStats ? formatDuration(sessionStats.totalMinutes) : '0h')} loading={loading} color="success" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+        <StatCard title="Examens Réussis" value={loading ? null : stages.filter(s => s.status === 'Réussi').length} loading={loading} color="info" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+        <StatCard title="Examens Échoués" value={loading ? null : stages.filter(s => s.status === 'Échoué').length} loading={loading} color="danger" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
       </div>
 
       {/* Filters */}
@@ -195,25 +186,32 @@ export default function StagesPage() {
       {/* Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content !max-w-md" onClick={e => e.stopPropagation()}>
+          <div className="modal-content !max-w-2xl" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="text-xl font-bold text-dark">{editStage ? 'Modifier le stage' : 'Nouveau stage'}</h2>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-xl hover:bg-surface-100 text-dark-muted transition-colors"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-              <div className="modal-body space-y-4">
-                <div><label className="form-label">Étudiant *</label><select {...F('student_id')} required className="form-select"><option value="">Sélectionner</option>{students.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select></div>
-                <div><label className="form-label">Type *</label><select {...F('type')} required className="form-select">{STAGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+              <div className="modal-body space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                   <div><label className="form-label">Étudiant *</label><select {...F('student_id')} required className="form-select"><option value="">Sélectionner</option>{students.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select></div>
+                   <div><label className="form-label">Type *</label><select {...F('type')} required className="form-select">{STAGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                </div>
+
                 <div><label className="form-label">Titre *</label><input {...F('title')} required className="form-input" placeholder="Description du stage" /></div>
-                <div className="grid grid-cols-2 gap-3">
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   <div><label className="form-label">Date *</label><input type="date" {...F('scheduled_date')} required className="form-input" /></div>
                   <div><label className="form-label">Heure</label><input type="time" {...F('scheduled_time')} className="form-input" /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
                   <div><label className="form-label">Durée (min)</label><input type="number" min="15" {...F('duration_minutes')} className="form-input" /></div>
-                  <div><label className="form-label">Statut</label><select {...F('status')} className="form-select">{STAGE_STATUS.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
                 </div>
-                <div><label className="form-label">Notes</label><textarea {...F('notes')} rows={2} className="form-textarea resize-none" /></div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div><label className="form-label">Statut</label><select {...F('status')} className="form-select">{STAGE_STATUS.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+                  <div className="flex-1"></div>
+                </div>
+
+                <div><label className="form-label">Notes</label><textarea {...F('notes')} rows={3} className="form-textarea resize-none" placeholder="Observations ou détails supplémentaires..." /></div>
               </div>
               <div className="modal-footer">
                 <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>Annuler</Button>

@@ -167,16 +167,24 @@ export default function AttendancePage() {
 
   return (
     <div className="animate-fadeIn space-y-6">
-      {/* Mode Info */}
-      <div className="bg-primary-50/50 border border-primary-100 rounded-2xl p-4 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center flex-shrink-0">
-          <svg className="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <p className="text-sm font-bold text-primary-600">Mode Automatique</p>
-          <p className="text-xs text-primary-500">Premier scan = Entrée, Deuxième scan = Sortie</p>
+          <h1 className="text-[22px] font-extrabold tracking-tight" style={{color:'#0d1b2e'}}>
+            Scanner QR
+          </h1>
+          <p className="text-sm mt-1" style={{color:'#7f93ae'}}>Enregistrez les entrées et sorties en temps réel.</p>
+        </div>
+        <div className="bg-white border rounded-xl px-4 py-2 flex items-center gap-3 shadow-sm" style={{borderColor:'#e8edf6'}}>
+          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Mode Automatique</p>
+            <p className="text-xs text-slate-500">Scan = Alternance Entrée/Sortie</p>
+          </div>
         </div>
       </div>
 

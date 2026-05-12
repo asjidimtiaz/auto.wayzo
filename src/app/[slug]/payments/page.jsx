@@ -8,6 +8,7 @@ import { useConfirm } from '@/lib/confirm';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
 import Button from '@/components/Button';
+import StatCard from '@/components/StatCard';
 import EmptyState from '@/components/EmptyState';
 import Pagination from '@/components/Pagination';
 import { formatDate, formatCurrency, today } from '@/lib/utils';
@@ -100,84 +101,27 @@ export default function PaymentsPage() {
 
   return (
     <div className="animate-fadeIn space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-dark">Paiements</h1>
-          <p className="text-sm text-dark-muted">Gestion des paiements des étudiants</p>
+          <h1 className="text-[22px] font-extrabold tracking-tight" style={{color:'#0d1b2e'}}>
+            Paiements
+          </h1>
+          <p className="text-sm mt-1" style={{color:'#7f93ae'}}>Suivez les règlements et les impayés de vos étudiants.</p>
         </div>
-        <div className="flex items-center gap-3">
-           <button className="flex items-center gap-2 px-4 py-2 bg-white border border-surface-200 rounded-xl text-sm font-medium text-dark-muted hover:bg-surface-50 transition-all">
-             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-             Exporter
-             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-           </button>
-           <button className="flex items-center gap-2 px-4 py-2 bg-white border border-surface-200 rounded-xl text-sm font-medium text-dark-muted hover:bg-surface-50 transition-all">
-             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-             Plan de Paiement
-           </button>
-           <Button onClick={() => setShowModal(true)} icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>}>
+        <div className="flex items-center gap-2">
+           <Button onClick={() => setShowModal(true)} icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>} className="shadow-lg shadow-blue-500/20">
              Nouveau paiement
            </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-         {/* Total */}
-         <div className="bg-white rounded-2xl shadow-soft p-5 border border-surface-100 transition-all hover:shadow-md">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-500">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              </div>
-              <span className="text-[10px] font-bold text-dark-muted uppercase tracking-widest bg-surface-50 px-2 py-0.5 rounded-full">Global</span>
-            </div>
-            <p className="text-xs font-semibold text-dark-muted mb-1">Total Paiements</p>
-            <p className="text-xl font-bold text-dark">{formatCurrency(methodStats.Total)}</p>
-         </div>
-
-         {/* Cash */}
-         <div className="bg-white rounded-2xl shadow-soft p-5 border border-surface-100 transition-all hover:shadow-md">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl bg-accent-green/10 flex items-center justify-center text-accent-green">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-              </div>
-            </div>
-            <p className="text-xs font-semibold text-dark-muted mb-1">Espèces</p>
-            <p className="text-xl font-bold text-dark">{formatCurrency(methodStats.Cash)}</p>
-         </div>
-
-         {/* Transfer */}
-         <div className="bg-white rounded-2xl shadow-soft p-5 border border-surface-100 transition-all hover:shadow-md">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl bg-accent-blue/10 flex items-center justify-center text-accent-blue">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-              </div>
-            </div>
-            <p className="text-xs font-semibold text-dark-muted mb-1">Virements</p>
-            <p className="text-xl font-bold text-dark">{formatCurrency(methodStats.Transfer)}</p>
-         </div>
-
-         {/* Cheque */}
-         <div className="bg-white rounded-2xl shadow-soft p-5 border border-surface-100 transition-all hover:shadow-md">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-500">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-              </div>
-            </div>
-            <p className="text-xs font-semibold text-dark-muted mb-1">Chèques</p>
-            <p className="text-xl font-bold text-dark">{formatCurrency(methodStats.Cheque)}</p>
-         </div>
-
-         {/* TPE */}
-         <div className="bg-white rounded-2xl shadow-soft p-5 border border-surface-100 transition-all hover:shadow-md">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl bg-accent-yellow/10 flex items-center justify-center text-accent-yellow">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-              </div>
-            </div>
-            <p className="text-xs font-semibold text-dark-muted mb-1">TPE</p>
-            <p className="text-xl font-bold text-dark">{formatCurrency(methodStats.TPE)}</p>
-         </div>
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <StatCard title="Total" value={loading ? null : formatCurrency(methodStats.Total)} loading={loading} color="primary" gradient />
+        <StatCard title="Espèces" value={loading ? null : formatCurrency(methodStats.Cash)} loading={loading} color="success" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>} />
+        <StatCard title="Virements" value={loading ? null : formatCurrency(methodStats.Transfer)} loading={loading} color="info" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>} />
+        <StatCard title="Chèques" value={loading ? null : formatCurrency(methodStats.Cheque)} loading={loading} color="primary" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} />
+        <StatCard title="TPE" value={loading ? null : formatCurrency(methodStats.TPE)} loading={loading} color="warning" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>} />
       </div>
 
       {/* Solde Impayé section */}
@@ -299,22 +243,58 @@ export default function PaymentsPage() {
       {/* Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-content !max-w-2xl" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="text-xl font-bold text-dark">Nouveau paiement</h2>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-xl hover:bg-surface-100 text-dark-muted transition-colors"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-              <div className="modal-body space-y-4">
-                <div><label className="form-label">Étudiant *</label><select {...F('student_id')} required className="form-select"><option value="">Sélectionner</option>{students.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select></div>
-                <div><label className="form-label">Montant (MAD) *</label><input type="number" min="0" step="0.01" {...F('amount')} required className="form-input" placeholder="0.00" /></div>
-                <div><label className="form-label">Mode de paiement</label><select {...F('payment_method')} className="form-select">{PAYMENT_METHODS.map(m => <option key={m} value={m}>{METHOD_LABEL[m]}</option>)}</select></div>
-                <div><label className="form-label">Date *</label><input type="date" {...F('payment_date')} required className="form-input" /></div>
-                <div><label className="form-label">Notes</label><textarea {...F('notes')} rows={2} className="form-textarea resize-none" placeholder="Notes optionnelles..." /></div>
+              <div className="modal-body space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                   <div className="md:col-span-2">
+                     <label className="form-label">Étudiant *</label>
+                     <select {...F('student_id')} required className="form-select">
+                        <option value="">Sélectionner un étudiant</option>
+                        {students.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+                     </select>
+                   </div>
+                   {form.student_id && (() => {
+                     const s = students.find(x => x.id === parseInt(form.student_id));
+                     if (!s) return null;
+                     const remaining = parseFloat(s.total_price || 0) - parseFloat(s.paid_amount || 0);
+                     return (
+                       <div className="md:col-span-2 p-3 bg-accent-yellow/5 border border-accent-yellow/20 rounded-xl flex items-center justify-between animate-fadeIn">
+                         <div className="flex items-center gap-2">
+                           <div className="w-8 h-8 rounded-lg bg-accent-yellow/10 flex items-center justify-center">
+                             <svg className="w-4 h-4 text-accent-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                           </div>
+                           <span className="text-xs font-bold text-dark uppercase tracking-wider">Solde restant de l'étudiant</span>
+                         </div>
+                         <span className={`text-sm font-black ${remaining > 0 ? 'text-accent-red' : 'text-accent-green'}`}>
+                           {formatCurrency(remaining)}
+                         </span>
+                       </div>
+                     );
+                   })()}
+                   <div>
+                     <label className="form-label">Montant (MAD) *</label>
+                     <input type="number" min="0" step="0.01" {...F('amount')} required className="form-input font-bold text-accent-green" placeholder="0.00" />
+                   </div>
+                   <div>
+                     <label className="form-label">Mode de paiement</label>
+                     <select {...F('payment_method')} className="form-select">{PAYMENT_METHODS.map(m => <option key={m} value={m}>{METHOD_LABEL[m]}</option>)}</select>
+                   </div>
+                   <div>
+                     <label className="form-label">Date *</label>
+                     <input type="date" {...F('payment_date')} required className="form-input" />
+                   </div>
+                   <div className="hidden md:block"></div>
+                </div>
+                <div><label className="form-label">Notes</label><textarea {...F('notes')} rows={2} className="form-textarea resize-none" placeholder="Notes optionnelles (Référence chèque, virement...)" /></div>
               </div>
               <div className="modal-footer">
                 <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>Annuler</Button>
-                <Button type="submit" loading={saving}>Enregistrer</Button>
+                <Button type="submit" loading={saving}>Enregistrer le paiement</Button>
               </div>
             </form>
           </div>

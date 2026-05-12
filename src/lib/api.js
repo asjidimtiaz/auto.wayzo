@@ -157,6 +157,7 @@ const api = {
     getById: (id) => apiFetch(`/api/documents?id=${id}`),
     getAll: () => apiFetch('/api/documents'),
     delete: (id) => apiFetch(`/api/documents?id=${id}`, { method: 'DELETE' }),
+    deleteAllByStudent: (studentId) => apiFetch(`/api/documents?studentId=${studentId}&action=deleteAll`, { method: 'DELETE' }),
   },
   contracts: {
     generate: (studentId, overrideData) =>

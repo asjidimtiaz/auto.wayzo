@@ -67,31 +67,33 @@ export default function ExpensesPage() {
 
   return (
     <div className="animate-fadeIn space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-dark">Gestion des Dépenses</h1>
-          <p className="text-sm text-dark-muted">Suivi des charges, salaires et frais fixes</p>
+          <h1 className="text-[22px] font-extrabold tracking-tight" style={{color:'#0d1b2e'}}>
+            Dépenses
+          </h1>
+          <p className="text-sm mt-1" style={{color:'#7f93ae'}}>Suivi des charges, salaires et frais fixes.</p>
         </div>
-        <Button onClick={() => setShowModal(true)} variant="primary" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>}>
+        <Button onClick={() => setShowModal(true)} variant="primary" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>} className="shadow-lg shadow-blue-500/20">
           Nouvelle Dépense
         </Button>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        <StatCard title="Dépenses Totales" value={loading ? null : formatCurrency(stats?.total || 0)} loading={loading} color="primary" gradient />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Dépenses Totales" value={loading ? null : formatCurrency(stats?.total || 0)} loading={loading} color="danger" gradient />
         {CATEGORIES.map(cat => {
           const s = stats?.byCategory?.find(c => c.category === cat.id);
+          const colorMap = { 'accent-red': 'danger', 'accent-yellow': 'warning', 'accent-blue': 'primary', 'accent-green': 'success' };
           return (
-            <div key={cat.id} className="bg-white rounded-3xl shadow-soft p-5 border border-surface-100 flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-2xl bg-${cat.color}/10 flex items-center justify-center text-${cat.color}`}>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={cat.icon} /></svg>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-dark-muted uppercase tracking-wider mb-0.5">{cat.label}</p>
-                <p className="text-xl font-bold text-dark">{loading ? '—' : formatCurrency(s?.total || 0)}</p>
-              </div>
-            </div>
+            <StatCard
+              key={cat.id}
+              title={cat.label}
+              value={loading ? null : formatCurrency(s?.total || 0)}
+              loading={loading}
+              color={colorMap[cat.color] || 'primary'}
+              icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={cat.icon} /></svg>}
+            />
           );
         })}
       </div>
@@ -151,8 +153,8 @@ export default function ExpensesPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark/20 backdrop-blur-sm animate-fadeIn">
-          <div className="modal-content !max-w-lg" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-content !max-w-2xl" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="text-xl font-bold text-dark">Nouvelle Dépense</h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-surface-100 rounded-xl transition-colors">
@@ -160,8 +162,8 @@ export default function ExpensesPage() {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-              <div className="modal-body space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="modal-body space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-dark-muted uppercase tracking-wider">Catégorie</label>
                     <select 
@@ -172,7 +174,7 @@ export default function ExpensesPage() {
                       {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                     </select>
                   </div>
-                  {currentCategory?.subcategories && (
+                  {currentCategory?.subcategories ? (
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-dark-muted uppercase tracking-wider">Sous-catégorie</label>
                       <select 
@@ -183,9 +185,10 @@ export default function ExpensesPage() {
                         {currentCategory.subcategories.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </div>
-                  )}
+                  ) : <div className="hidden md:block"></div>}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-dark-muted uppercase tracking-wider">Montant (DH)</label>
                     <input type="number" required value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="form-input w-full font-bold text-accent-red" placeholder="0.00" />
@@ -195,9 +198,10 @@ export default function ExpensesPage() {
                     <input type="date" required value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="form-input w-full" />
                   </div>
                 </div>
+
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-dark-muted uppercase tracking-wider">Notes / Justification</label>
-                  <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="form-input w-full h-20 resize-none" placeholder="Ex: Réparation frein Peugeot 208..." />
+                  <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="form-textarea w-full h-24 resize-none" placeholder="Ex: Réparation frein Peugeot 208..." />
                 </div>
               </div>
               <div className="modal-footer">

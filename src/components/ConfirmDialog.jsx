@@ -35,11 +35,10 @@ export default function ConfirmDialog({
   const cfg = typeConfig[type];
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div
-          className="relative bg-white max-w-sm w-full p-6 animate-[modalIn_0.22s_cubic-bezier(0.16,1,0.3,1)]"
+      <div
+        className="relative bg-white max-w-sm w-full p-6 animate-[modalScaleIn_0.25s_cubic-bezier(0.16,1,0.3,1)]"
           style={{ borderRadius: 20, boxShadow: '0 20px 60px rgba(10,18,40,0.18)', border: '1px solid #eef1f7' }}
           onClick={e => e.stopPropagation()}
         >
@@ -58,6 +57,5 @@ export default function ConfirmDialog({
           </div>
         </div>
       </div>
-    </div>
   );
 }
