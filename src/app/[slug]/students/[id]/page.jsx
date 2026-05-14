@@ -1215,12 +1215,12 @@ export default function StudentDetailPage() {
       )}
       {/* Doc Review Modal */}
       {showDocModal && (
-        <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4 bg-dark/60 backdrop-blur-md animate-fadeIn">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-slideUp border border-surface-200">
+        <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4 bg-dark/60 backdrop-blur-md animate-fadeIn" onClick={() => setShowDocModal(false)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-slideUp border border-surface-200" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-surface-100 flex items-center justify-between bg-white sticky top-0 z-10">
               <h2 className="text-xl font-bold text-dark">{docType === 'demande15' ? 'Informations - Demande 15 Jours' : 'Informations du Contrat'}</h2>
               <button onClick={() => setShowDocModal(false)} className="w-10 h-10 rounded-2xl flex items-center justify-center hover:bg-surface-100 text-dark-muted transition-all border border-surface-100">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                <X size={20} />
               </button>
             </div>
             
@@ -1385,7 +1385,14 @@ export default function StudentDetailPage() {
             </div>
             
             <div className="p-6 border-t border-surface-100 bg-white flex justify-end gap-3 sticky bottom-0 z-10">
-              <Button variant="secondary" onClick={() => setShowDocModal(false)} disabled={docLoading} className="!rounded-xl px-8 h-12">Annuler</Button>
+              <button 
+                type="button"
+                onClick={() => setShowDocModal(false)} 
+                disabled={docLoading} 
+                className="px-8 h-12 rounded-xl text-dark-muted font-bold hover:bg-surface-100 transition-all border border-surface-200"
+              >
+                Annuler
+              </button>
               <Button 
                 onClick={submitGenerate} 
                 loading={docLoading} 
