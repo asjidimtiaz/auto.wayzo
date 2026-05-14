@@ -6,6 +6,7 @@ import { requireTenant } from '@/lib/tenant';
 import { UPLOAD_DIR } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 const EXT_TO_MIME = {
   '.jpg': 'image/jpeg',

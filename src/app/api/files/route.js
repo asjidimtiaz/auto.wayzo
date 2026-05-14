@@ -6,6 +6,7 @@ import { requireAuth } from '@/lib/tenant';
 import { uploadToStorage, deleteFromStorage, UPLOAD_DIR } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 const ALLOWED_SUBFOLDERS = new Set(['documents', 'profiles', 'contracts', 'photos', 'logos']);
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'application/pdf'];

@@ -8,6 +8,7 @@ import { requireTenant } from '@/lib/tenant';
 import { uploadToStorage } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 // Draw right-aligned text
 function drawTextRight(page, text, x, y, font, size) {
