@@ -339,7 +339,7 @@ export default function StudentsPage() {
           ) : filtered.length === 0 ? (
             <EmptyState.NoStudents onAction={openAdd} />
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full">
                 <thead className="bg-surface-50/50 border-b border-surface-200">
                   <tr>
@@ -351,9 +351,9 @@ export default function StudentsPage() {
                       { label: 'Paiement', key: 'payment' },
                       { label: '', key: 'actions' },
                     ].map(h => (
-                      <th key={h.label} className="text-left px-6 py-4">
+                      <th key={h.label} className="text-left px-4 py-4">
                         <div className="flex items-center gap-2 group cursor-pointer">
-                          <span className="text-[11px] font-bold text-dark-muted uppercase tracking-wider">{h.label}</span>
+                          <span className="text-[10px] font-bold text-dark-muted uppercase tracking-wider">{h.label}</span>
                           {h.key !== 'actions' && (
                             <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
                               <svg className="w-2 h-2 text-dark-muted" fill="currentColor" viewBox="0 0 20 20"><path d="M5 15l5-5 5 5H5z" /></svg>
@@ -374,66 +374,61 @@ export default function StudentsPage() {
                     
                     return (
                       <tr key={s.id} className="hover:bg-surface-50 transition-all duration-200 group">
-                        <td className="px-6 py-5">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 font-bold text-sm shadow-sm border border-white/50 ${getAvatarColor(s.full_name)}`}>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-xs shadow-sm border border-white/50 ${getAvatarColor(s.full_name)}`}>
                               {s.full_name?.charAt(0).toUpperCase()}
                             </div>
-                            <div>
-                              <Link href={`/${slug}/students/${s.id}`} className="text-[15px] font-bold text-dark hover:text-primary-600 transition-colors block">
+                            <div className="min-w-0">
+                              <Link href={`/${slug}/students/${s.id}`} className="text-[14px] font-bold text-dark hover:text-primary-600 transition-colors block truncate">
                                 {s.full_name}
                               </Link>
                               <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-[11px] text-dark-muted font-medium">{s.qr_code}</span>
+                                <span className="text-[10px] text-dark-muted font-medium">{s.qr_code}</span>
                                 <span className="text-dark-muted/30">•</span>
-                                <svg className="w-3 h-3 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                                <span className="text-[11px] text-dark-muted font-medium">{s.phone || '—'}</span>
-                              </div>
-                              <div className="flex items-center gap-1 mt-0.5">
-                                <svg className="w-3 h-3 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                <span className="text-[11px] text-dark-muted font-medium">{s.ville || 'agadir'}</span>
+                                <span className="text-[10px] text-dark-muted font-medium">{s.phone || '—'}</span>
                               </div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-5">
-                          <div className="space-y-1.5">
-                            <div className="inline-flex items-center px-3 py-1 rounded-xl bg-primary-50 text-primary-700 text-[11px] font-bold border border-primary-100/50">
+                        <td className="px-4 py-4">
+                          <div className="space-y-1">
+                            <div className="inline-flex items-center px-2 py-0.5 rounded-lg bg-primary-50 text-primary-700 text-[10px] font-bold border border-primary-100/50">
                               Permis {s.license_type}
                             </div>
-                            <div className={`flex items-center gap-1.5 text-[11px] font-bold ${s.status === 'En formation' ? 'text-primary-600' : s.status === 'Permis obtenu' ? 'text-emerald-600' : 'text-dark-muted'}`}>
-                              <div className={`w-1.5 h-1.5 rounded-full ${s.status === 'En formation' ? 'bg-primary-500' : s.status === 'Permis obtenu' ? 'bg-emerald-500' : 'bg-dark-muted'}`} />
+                            <div className={`flex items-center gap-1.5 text-[10px] font-bold ${s.status === 'En formation' ? 'text-primary-600' : s.status === 'Permis obtenu' ? 'text-emerald-600' : 'text-dark-muted'}`}>
+                              <div className={`w-1 h-1 rounded-full ${s.status === 'En formation' ? 'bg-primary-500' : s.status === 'Permis obtenu' ? 'bg-emerald-500' : 'bg-dark-muted'}`} />
                               {s.status}
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-5">
-                          <div className="text-sm font-bold text-dark">{formatDate(s.registration_date)}</div>
-                          <div className="text-[11px] text-dark-muted font-medium mt-0.5">Né: {s.birth_date ? formatDate(s.birth_date) : '05/05/2000'}</div>
+                        <td className="px-4 py-4">
+                          <div className="text-[13px] font-bold text-dark">{formatDate(s.registration_date)}</div>
+                          <div className="text-[10px] text-dark-muted font-medium">Né: {s.birth_date ? formatDate(s.birth_date) : '05/05/2000'}</div>
                         </td>
-                        <td className="px-6 py-5">
-                          <div className="text-[13px] font-bold text-emerald-600">{remainingDays}j restants</div>
-                          <div className="text-[11px] text-dark-muted font-medium mt-0.5">{s.training_duration_days || 30}j total</div>
+                        <td className="px-4 py-4">
+                          <div className="text-[12px] font-bold text-emerald-600">{remainingDays}j restants</div>
+                          <div className="text-[10px] text-dark-muted font-medium">{s.training_duration_days || 30}j total</div>
                         </td>
-                        <td className="px-6 py-5">
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm font-bold text-dark">{formatCurrency(paid)}</span>
-                            <span className="text-[11px] font-bold text-dark-muted">{percent}%</span>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[13px] font-bold text-dark">{formatCurrency(paid)}</span>
+                            <span className="text-[10px] font-bold text-dark-muted">{percent}%</span>
                           </div>
-                          <div className="w-24 h-1.5 bg-surface-100 rounded-full mt-2 overflow-hidden">
+                          <div className="w-20 h-1.5 bg-surface-100 rounded-full mt-1.5 overflow-hidden">
                             <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${percent}%` }} />
                           </div>
                         </td>
-                        <td className="px-6 py-5 text-right">
+                        <td className="px-4 py-4 text-right">
                           <div className="flex items-center justify-end gap-1 transition-all">
-                            <Link href={`/${slug}/students/${s.id}`} className="p-2 rounded-xl bg-surface-100/50 hover:bg-surface-100 text-dark-muted hover:text-dark transition-all">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            <Link href={`/${slug}/students/${s.id}`} className="p-1.5 rounded-lg bg-surface-100/50 hover:bg-surface-100 text-dark-muted hover:text-dark transition-all" title="Voir">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                             </Link>
-                            <button onClick={() => openEdit(s)} className="p-2 rounded-xl bg-surface-100/50 hover:bg-surface-100 text-dark-muted hover:text-dark transition-all">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg bg-surface-100/50 hover:bg-surface-100 text-dark-muted hover:text-dark transition-all" title="Modifier">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                             </button>
-                            <button onClick={() => handleDelete(s)} className="p-2 rounded-xl bg-red-50 text-dark-muted hover:text-red-600 transition-all">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            <button onClick={() => handleDelete(s)} className="p-1.5 rounded-lg bg-red-50 text-dark-muted hover:text-red-600 transition-all" title="Supprimer">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1v3M4 7h16" /></svg>
                             </button>
                           </div>
                         </td>
