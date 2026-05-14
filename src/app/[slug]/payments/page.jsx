@@ -99,78 +99,176 @@ export default function PaymentsPage() {
     catch { notify.error('Erreur lors de la suppression'); }
   }
 
+  const exportCSV = () => {
+    const headers = ['Étudiant', 'Montant', 'Mode de Paiement', 'Date', 'Notes'];
+    const rows = filtered.map(p => [
+      `"${p.full_name}"`,
+      p.amount,
+      `"${METHOD_LABEL[p.payment_method] || p.payment_method}"`,
+      formatDate(p.payment_date),
+      `"${p.notes || ''}"`
+    ]);
+    const csvContent = "\uFEFF" + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `paiements_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportPDF = async () => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text('Liste des Paiements', 14, 20);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')} | ${filtered.length} enregistrements`, 14, 30);
+    
+    const tableHeaders = [['Étudiant', 'Montant', 'Mode', 'Date', 'Notes']];
+    const tableRows = filtered.map(p => [
+      p.full_name,
+      `${p.amount} MAD`,
+      METHOD_LABEL[p.payment_method] || p.payment_method,
+      formatDate(p.payment_date),
+      p.notes || ''
+    ]);
+
+    autoTable(doc, {
+      startY: 40,
+      head: tableHeaders,
+      body: tableRows,
+      theme: 'grid',
+      headStyles: { fillColor: [37, 99, 235], fontSize: 10 },
+      styles: { fontSize: 9 },
+      columnStyles: {
+        1: { fontStyle: 'bold', halign: 'right' },
+      }
+    });
+
+    doc.save(`paiements_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   return (
     <div className="animate-fadeIn space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-[22px] font-extrabold tracking-tight" style={{color:'#0d1b2e'}}>
-            Paiements
-          </h1>
-          <p className="text-sm mt-1" style={{color:'#7f93ae'}}>Suivez les règlements et les impayés de vos étudiants.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-50/50">
+            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-dark-muted uppercase tracking-[0.2em] mb-0.5">Suivi des règlements étudiants</p>
+            <h1 className="text-3xl font-black text-dark tracking-tight">Paiements</h1>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-           <Button onClick={() => setShowModal(true)} icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>} className="shadow-lg shadow-blue-500/20">
-             Nouveau paiement
-           </Button>
+        
+        <div className="flex items-center gap-3">
+          <div className="relative group">
+            <Button variant="secondary" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>}>
+              Exporter
+              <svg className="ml-1 w-3 h-3 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </Button>
+            <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-surface-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden transform origin-top-right scale-95 group-hover:scale-100">
+              <div className="p-2 space-y-1">
+                <button onClick={exportCSV} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-50 transition-colors group/item text-left">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 group-hover/item:bg-emerald-600 group-hover/item:text-white transition-all">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2a2 2 0 00-2-2H5a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-dark">Exporter CSV</p>
+                    <p className="text-[10px] text-dark-muted font-medium">Fichier Excel</p>
+                  </div>
+                </button>
+                <button onClick={exportPDF} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 transition-colors group/item text-left">
+                  <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center text-red-600 group-hover/item:bg-red-600 group-hover/item:text-white transition-all">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-dark">Exporter PDF</p>
+                    <p className="text-[10px] text-dark-muted font-medium">Pour impression</p>
+                  </div>
+                </button>
+              </div>
+              <div className="bg-surface-50 px-4 py-3 border-t border-surface-100">
+                <p className="text-[10px] font-bold text-dark-muted uppercase tracking-wider">{filtered.length} enregistrement(s)</p>
+              </div>
+            </div>
+          </div>
+          <Link href={`/${slug}/calculateur#payment-plan`}>
+            <Button variant="secondary" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>}>
+              Plan de Paiement
+            </Button>
+          </Link>
+          <Button onClick={() => setShowModal(true)} icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>} className="shadow-lg shadow-emerald-500/20 !bg-emerald-600">
+            Nouveau paiement
+          </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard title="Total" value={loading ? null : formatCurrency(methodStats.Total)} loading={loading} color="primary" gradient />
-        <StatCard title="Espèces" value={loading ? null : formatCurrency(methodStats.Cash)} loading={loading} color="success" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>} />
-        <StatCard title="Virements" value={loading ? null : formatCurrency(methodStats.Transfer)} loading={loading} color="info" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>} />
-        <StatCard title="Chèques" value={loading ? null : formatCurrency(methodStats.Cheque)} loading={loading} color="primary" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} />
-        <StatCard title="TPE" value={loading ? null : formatCurrency(methodStats.TPE)} loading={loading} color="warning" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>} />
+        <StatCard title="Espèces" value={loading ? null : formatCurrency(methodStats.Cash)} loading={loading} color="success" icon={<svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>} />
+        <StatCard title="Virements" value={loading ? null : formatCurrency(methodStats.Transfer)} loading={loading} color="info" icon={<svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>} />
+        <StatCard title="Chèques" value={loading ? null : formatCurrency(methodStats.Cheque)} loading={loading} color="primary" icon={<svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} />
+        <StatCard title="TPE" value={loading ? null : formatCurrency(methodStats.TPE)} loading={loading} color="warning" icon={<svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>} />
       </div>
 
       {/* Solde Impayé section */}
-      <Card>
-        <Card.Header 
-          title={
-            <div className="flex items-center gap-2 text-dark font-bold">
-              <div className="w-8 h-8 rounded-lg bg-accent-yellow/10 flex items-center justify-center">
-                <svg className="w-4 h-4 text-accent-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
-              </div>
-              Solde Impayé
+      <Card padding="none" className="overflow-hidden">
+        <div className="bg-surface-50/50 px-6 py-4 border-b border-surface-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-red-600">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
             </div>
-          }
-          action={
-            <div className="flex items-center gap-2 px-3 py-1 bg-surface-100 rounded-full text-[10px] font-bold text-dark-muted uppercase tracking-wider">
-              {unpaidStudents.length} étudiants
+            <div>
+              <h3 className="text-sm font-black text-dark uppercase tracking-tight">Solde Impayé</h3>
+              <p className="text-[10px] text-dark-muted font-bold uppercase tracking-wider">{unpaidStudents.length} étudiants concernés</p>
             </div>
-          }
-        />
-        <div className="flex overflow-x-auto pb-4 gap-4 snap-x custom-scrollbar p-2">
-          {unpaidStudents.map((s) => {
+          </div>
+          <Link href={`/${slug}/students`} className="text-xs font-bold text-primary-600 hover:text-primary-700 transition-colors flex items-center gap-1">
+            Tout voir
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+          {unpaidStudents.slice(0, 6).map((s) => {
             const progress = s.total > 0 ? (s.paid / s.total) * 100 : 0;
             return (
-              <div key={s.id} className="min-w-[280px] flex-shrink-0 bg-white p-4 rounded-2xl border border-surface-100 shadow-soft snap-start hover:shadow-md transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-dark truncate pr-2">{s.full_name}</h3>
-                  <span className="text-sm font-bold text-accent-red">-{formatCurrency(s.remaining)}</span>
+              <Link href={`/${slug}/students/${s.id}`} key={s.id} className="group bg-white p-5 rounded-[2rem] border border-surface-100 shadow-soft hover:shadow-xl hover:border-primary-100 transition-all transform hover:-translate-y-1">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-surface-50 flex items-center justify-center text-dark font-black text-sm group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors">
+                    {s.full_name?.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-black text-red-600">-{formatCurrency(s.remaining)}</span>
                 </div>
-                <div className="w-full h-1.5 bg-surface-50 rounded-full overflow-hidden mb-2">
-                   <div className="h-full bg-accent-red/60 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+                <h3 className="text-sm font-bold text-dark truncate mb-3">{s.full_name}</h3>
+                <div className="space-y-2">
+                  <div className="w-full h-2 bg-surface-50 rounded-full overflow-hidden">
+                    <div className="h-full bg-red-500 rounded-full transition-all duration-700" style={{ width: `${progress}%` }} />
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] font-black text-dark-muted uppercase tracking-widest">
+                    <span>Payé: {formatCurrency(s.paid)}</span>
+                    <span>{Math.round(progress)}%</span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-[10px] font-medium text-dark-muted">
-                  <span>Payé: {formatCurrency(s.paid)}</span>
-                  <span>{Math.round(progress)}%</span>
-                </div>
-              </div>
+              </Link>
             );
           })}
           {unpaidStudents.length === 0 && (
-             <p className="text-sm text-dark-muted italic py-4">Aucun impayé</p>
+             <div className="col-span-full py-10 text-center">
+               <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 mx-auto mb-4">
+                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+               </div>
+               <p className="text-sm text-dark-muted font-bold uppercase tracking-widest">Tous les comptes sont à jour</p>
+             </div>
           )}
         </div>
-        {unpaidStudents.length > 6 && (
-          <div className="mt-6 pt-4 border-t border-surface-100 text-center">
-            <Link href={`/${slug}/students`} className="text-xs font-bold text-dark-muted hover:text-primary-500 transition-colors">
-              + {unpaidStudents.length - 6} autres étudiants
-            </Link>
-          </div>
-        )}
       </Card>
 
       {/* Filters */}

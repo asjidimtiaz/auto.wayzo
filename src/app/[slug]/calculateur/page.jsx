@@ -13,6 +13,7 @@ export default function CalculatorPage() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [studentDocuments, setStudentDocuments] = useState([]);
 
   // Salaries Calculator
   const [salaryForm, setSalaryForm] = useState({
@@ -58,6 +59,14 @@ export default function CalculatorPage() {
       setLoading(false);
     });
   }, []);
+
+  useEffect(() => {
+    if (studentForm.student_id) {
+      api.documents.getByStudent(studentForm.student_id).then(setStudentDocuments).catch(() => setStudentDocuments([]));
+    } else {
+      setStudentDocuments([]);
+    }
+  }, [studentForm.student_id]);
 
   // --- Calculations ---
 
@@ -191,6 +200,8 @@ export default function CalculatorPage() {
       if (res.success) {
         notify.success('Contrat généré');
         window.open(res.path, '_blank');
+        // Refresh documents list
+        api.documents.getByStudent(selectedStudent.id).then(setStudentDocuments);
       } else {
         notify.error('Erreur lors de la génération');
       }
@@ -216,7 +227,11 @@ export default function CalculatorPage() {
         notify.success('Paiement enregistré');
         try {
           const recu = await api.payments.generateReceipt(res.id);
-          if (recu.success) window.open(recu.path, '_blank');
+          if (recu.success) {
+            window.open(recu.path, '_blank');
+            // Refresh documents list
+            api.documents.getByStudent(studentForm.student_id).then(setStudentDocuments);
+          }
         } catch (e) {
           console.error('Receipt generation failed', e);
         }
@@ -416,7 +431,7 @@ export default function CalculatorPage() {
         </Card>
 
         {/* Student Installment Calculator */}
-        <Card className="lg:col-span-2 overflow-hidden border-t-4 border-accent-green">
+        <Card id="payment-plan" className="lg:col-span-2 overflow-hidden border-t-4 border-accent-green">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-accent-green/10 flex items-center justify-center text-accent-green">
@@ -461,6 +476,41 @@ export default function CalculatorPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-[10px] font-black text-accent-green uppercase tracking-widest">Reste à payer</span>
                       <span className="text-xl font-black text-accent-green">{formatCurrency(selectedStudent.total_price - selectedStudent.paid_amount)}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* New Documents List Section */}
+                {selectedStudent && (
+                  <div className="pt-4 border-t border-surface-100">
+                    <h3 className="text-[10px] font-black text-dark-muted uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      Derniers Documents
+                    </h3>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                      {studentDocuments.length === 0 ? (
+                        <p className="text-[10px] text-dark-muted italic py-4 text-center">Aucun document généré</p>
+                      ) : (
+                        studentDocuments.map(doc => (
+                          <div key={doc.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-surface-100 shadow-sm group hover:border-accent-green/30 transition-all">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-8 h-8 rounded-lg bg-accent-green/5 flex items-center justify-center text-accent-green flex-shrink-0">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-bold text-dark truncate">{doc.name || doc.title}</p>
+                                <p className="text-[9px] text-dark-muted">{new Date(doc.created_at).toLocaleDateString('fr-FR')}</p>
+                              </div>
+                            </div>
+                            <button 
+                              onClick={() => window.open(`/api/files/view?path=${encodeURIComponent(doc.file_path || doc.path)}`, '_blank')}
+                              className="p-1.5 rounded-lg bg-surface-50 text-dark-muted hover:bg-accent-green hover:text-white transition-all"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            </button>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}

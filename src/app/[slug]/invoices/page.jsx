@@ -102,6 +102,41 @@ export default function InvoicesPage() {
     } catch { notify.error('Erreur lors de la mise à jour'); }
   }
 
+  async function handlePrintInvoice(invoice) {
+    try {
+      const res = await api.invoices.print(invoice.id);
+      if (res && res.data) {
+        const binaryString = window.atob(res.data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = url;
+        document.body.appendChild(iframe);
+        iframe.onload = () => {
+          setTimeout(() => {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            setTimeout(() => {
+              document.body.removeChild(iframe);
+              URL.revokeObjectURL(url);
+            }, 1000);
+          }, 200);
+        };
+      } else {
+        notify.error('Erreur lors de la génération de la facture');
+      }
+    } catch (err) {
+      console.error(err);
+      notify.error('Erreur de connexion');
+    }
+  }
+
   async function handleDelete(invoice) {
     const ok = await confirmDelete(`la facture ${invoice.invoice_number || ''}`);
     if (!ok) return;
@@ -109,17 +144,95 @@ export default function InvoicesPage() {
     catch { notify.error('Erreur lors de la suppression'); }
   }
 
+  const exportCSV = () => {
+    const headers = ['N° Facture', 'Date', 'Client', 'CIN', 'Montant', 'Statut'];
+    const rows = filtered.map(inv => [
+      inv.invoice_number,
+      formatDate(inv.issue_date),
+      `"${inv.full_name}"`,
+      inv.cin || '',
+      inv.amount,
+      `"${inv.status}"`
+    ]);
+    const csvContent = "\uFEFF" + headers.join(",") + "\n" + rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `factures_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportPDF = async () => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    const doc = new jsPDF();
+    doc.text('Journal des Factures', 14, 20);
+    const tableRows = filtered.map(inv => [
+      inv.invoice_number,
+      formatDate(inv.issue_date),
+      inv.full_name,
+      formatCurrency(inv.amount),
+      inv.status
+    ]);
+    autoTable(doc, {
+      startY: 30,
+      head: [['N°', 'Date', 'Client', 'Montant', 'Statut']],
+      body: tableRows,
+      theme: 'grid',
+      headStyles: { fillColor: [30, 58, 138] }
+    });
+    doc.save(`factures_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   return (
     <div className="animate-fadeIn space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-[22px] font-extrabold tracking-tight" style={{color:'#0d1b2e'}}>
-            Factures
-          </h1>
-          <p className="text-sm mt-1" style={{color:'#7f93ae'}}>Gérez les factures et les règlements de vos clients.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 shadow-sm border border-blue-50/50">
+            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-dark-muted uppercase tracking-[0.2em] mb-0.5">Gestion des documents commerciaux</p>
+            <h1 className="text-3xl font-black text-dark tracking-tight">Factures</h1>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => setShowModal(true)} icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>}>
+        
+        <div className="flex items-center gap-3">
+          <div className="relative group">
+            <Button variant="secondary" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>}>
+              Exporter
+              <svg className="ml-1 w-3 h-3 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </Button>
+            <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-surface-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden transform origin-top-right scale-95 group-hover:scale-100">
+              <div className="p-2 space-y-1">
+                <button onClick={exportCSV} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-50 transition-colors group/item text-left">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 group-hover/item:bg-emerald-600 group-hover/item:text-white transition-all">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2a2 2 0 00-2-2H5a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-dark">Exporter CSV</p>
+                    <p className="text-[10px] text-dark-muted font-medium">Fichier Excel</p>
+                  </div>
+                </button>
+                <button onClick={exportPDF} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 transition-colors group/item text-left">
+                  <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center text-red-600 group-hover/item:bg-red-600 group-hover/item:text-white transition-all">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-dark">Exporter PDF</p>
+                    <p className="text-[10px] text-dark-muted font-medium">Pour impression</p>
+                  </div>
+                </button>
+              </div>
+              <div className="bg-surface-50 px-4 py-3 border-t border-surface-100">
+                <p className="text-[10px] font-bold text-dark-muted uppercase tracking-wider">{filtered.length} enregistrement(s)</p>
+              </div>
+            </div>
+          </div>
+          <Button onClick={() => setShowModal(true)} icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>} className="shadow-lg shadow-blue-500/20">
             Nouvelle Facture
           </Button>
         </div>
@@ -217,7 +330,7 @@ export default function InvoicesPage() {
                       </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center justify-center gap-2">
-                        <button className="p-2 rounded-xl bg-surface-100 text-dark-muted hover:bg-surface-200 transition-colors">
+                        <button onClick={() => handlePrintInvoice(inv)} className="p-2 rounded-xl bg-surface-100 text-dark-muted hover:bg-surface-200 transition-colors" title="Imprimer la facture">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                         </button>
                         <button onClick={() => handleDelete(inv)} className="p-2 rounded-xl bg-accent-red/10 text-accent-red hover:bg-accent-red/20 transition-colors">

@@ -39,6 +39,7 @@ export default function StagesPage() {
   const [saving, setSaving] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+  const [activeTab, setActiveTab] = useState('day');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -94,6 +95,65 @@ export default function StagesPage() {
     catch { notify.error('Erreur lors de la suppression'); }
   }
 
+  const exportCSV = () => {
+    const headers = ['Étudiant', 'Stage', 'Type', 'Date', 'Heure', 'Durée', 'Statut'];
+    const rows = filtered.map(s => [
+      `"${s.full_name}"`,
+      `"${s.title}"`,
+      `"${s.type}"`,
+      formatDate(s.scheduled_date),
+      s.scheduled_time || '',
+      formatDuration(s.duration_minutes),
+      `"${s.status}"`
+    ]);
+    const csvContent = "\uFEFF" + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `stages_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportPDF = async () => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Liste des Stages & Examens', 14, 20);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')} | ${filtered.length} enregistrements`, 14, 30);
+    const tableHeaders = [['Étudiant', 'Stage', 'Type', 'Date & Heure', 'Statut']];
+    const tableRows = filtered.map(s => [
+      s.full_name,
+      s.title,
+      s.type,
+      `${formatDate(s.scheduled_date)} ${s.scheduled_time || ''}`,
+      s.status
+    ]);
+    autoTable(doc, {
+      startY: 40,
+      head: tableHeaders,
+      body: tableRows,
+      theme: 'grid',
+      headStyles: { fillColor: [37, 99, 235], fontSize: 10 },
+      styles: { fontSize: 9 }
+    });
+    doc.save(`stages_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const stats = sessionStats?.[activeTab] || {
+    completed_minutes: 0,
+    scheduled_minutes: 0,
+    seance_minutes: 0,
+    code_minutes: 0,
+    completed_count: 0,
+    scheduled_count: 0,
+  };
+
   return (
     <div className="animate-fadeIn">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
@@ -101,20 +161,90 @@ export default function StagesPage() {
           <h1 className="text-[22px] font-extrabold tracking-tight" style={{color:'#0d1b2e'}}>
             Stages & Examens
           </h1>
-          <p className="text-sm mt-1" style={{color:'#7f93ae'}}>Planifiez et suivez les séances de formation et les examens.</p>
+          <p className="text-sm mt-1" style={{color:'#7f93ae'}}>Gérer les séances de conduite et examens</p>
         </div>
-        <Button onClick={openAdd} icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>} className="shadow-lg shadow-blue-500/20">
-          Nouveau stage
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="relative group">
+            <Button variant="secondary" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>}>
+              Exporter
+              <svg className="ml-1 w-3 h-3 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </Button>
+            <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-surface-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden transform origin-top-right scale-95 group-hover:scale-100">
+              <div className="p-2 space-y-1">
+                <button onClick={exportCSV} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-50 transition-colors group/item text-left">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 group-hover/item:bg-emerald-600 group-hover/item:text-white transition-all">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2a2 2 0 00-2-2H5a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-dark">Exporter CSV</p>
+                    <p className="text-[10px] text-dark-muted font-medium">Fichier Excel</p>
+                  </div>
+                </button>
+                <button onClick={exportPDF} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 transition-colors group/item text-left">
+                  <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center text-red-600 group-hover/item:bg-red-600 group-hover/item:text-white transition-all">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-dark">Exporter PDF</p>
+                    <p className="text-[10px] text-dark-muted font-medium">Pour impression</p>
+                  </div>
+                </button>
+              </div>
+              <div className="bg-surface-50 px-4 py-3 border-t border-surface-100">
+                <p className="text-[10px] font-bold text-dark-muted uppercase tracking-wider">{filtered.length} enregistrement(s)</p>
+              </div>
+            </div>
+          </div>
+          <Button onClick={openAdd} icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>} className="shadow-lg shadow-blue-500/20">
+            Nouvelle Séance
+          </Button>
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Total Séances" value={loading ? null : filtered.length} loading={loading} color="primary" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>} />
-        <StatCard title="Heures de Formation" value={loading ? null : (sessionStats ? formatDuration(sessionStats.totalMinutes) : '0h')} loading={loading} color="success" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-        <StatCard title="Examens Réussis" value={loading ? null : stages.filter(s => s.status === 'Réussi').length} loading={loading} color="info" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-        <StatCard title="Examens Échoués" value={loading ? null : stages.filter(s => s.status === 'Échoué').length} loading={loading} color="danger" icon={<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-      </div>
+      {/* Statistiques de Temps */}
+      <Card className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <h2 className="text-lg font-bold text-dark">Statistiques de Temps</h2>
+          <div className="flex bg-surface-100 p-1 rounded-xl">
+            {[
+              { id: 'day', label: "Aujourd'hui" },
+              { id: 'week', label: 'Semaine' },
+              { id: 'month', label: 'Mois' },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  activeTab === tab.id ? 'bg-white text-primary-600 shadow-sm' : 'text-dark-muted hover:text-dark'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Temps Terminé</p>
+            <p className="text-2xl font-black text-emerald-700">{formatDuration(stats.completed_minutes)}</p>
+            <p className="text-[10px] font-medium text-emerald-600/70">{stats.completed_count} séance(s)</p>
+          </div>
+          <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1">Temps Planifié</p>
+            <p className="text-2xl font-black text-blue-700">{formatDuration(stats.scheduled_minutes)}</p>
+            <p className="text-[10px] font-medium text-blue-600/70">{stats.scheduled_count} séance(s)</p>
+          </div>
+          <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100">
+            <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wider mb-1">Total Conduite</p>
+            <p className="text-2xl font-black text-orange-700">{formatDuration(stats.seance_minutes)}</p>
+          </div>
+          <div className="p-4 bg-purple-50/50 rounded-2xl border border-purple-100">
+            <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-1">Total Code</p>
+            <p className="text-2xl font-black text-purple-700">{formatDuration(stats.code_minutes)}</p>
+          </div>
+        </div>
+      </Card>
 
       {/* Filters */}
       <Card className="mb-4" padding="sm">
@@ -139,7 +269,7 @@ export default function StagesPage() {
         {loading ? (
           <div className="p-6 space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-14 bg-surface-100 rounded-xl animate-pulse" />)}</div>
         ) : filtered.length === 0 ? (
-          <EmptyState icon={<svg className="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>} title="Aucun stage" description="Commencez par planifier une séance ou un examen." onAction={openAdd} actionLabel="Nouveau stage" />
+          <EmptyState icon={<svg className="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>} title="Aucun stage" description="Commencez par planifier une séance ou un examen." onAction={openAdd} actionLabel="Nouvelle Séance" />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">

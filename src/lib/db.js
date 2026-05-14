@@ -11,14 +11,31 @@ let pool = null;
 
 function getPool() {
   if (pool) return pool;
-  const url = process.env.DATABASE_URL;
   const ssl = process.env.DATABASE_SSL !== 'false' && { rejectUnauthorized: false };
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl,
-    max: 10,
+    max: 3,
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 10_000,
+  });
+  pool.on('error', (err) => {
+    console.error('[db] idle client error:', err.message);
   });
   return pool;
+}
+
+async function resetPool() {
+  const oldPool = pool;
+  pool = null;
+  if (oldPool) {
+    await oldPool.end().catch(() => {});
+  }
+}
+
+function isConnectionError(err) {
+  return ['ECONNRESET', 'ECONNREFUSED', 'EPIPE', 'ETIMEDOUT', 'EACCES'].includes(err?.code)
+    || /Connection terminated|Connection ended|Client has encountered a connection error/i.test(err?.message || '');
 }
 
 async function getDb() {
@@ -26,9 +43,15 @@ async function getDb() {
 }
 
 async function query(sql, params = []) {
-  const p = getPool();
-  const result = await p.query(sql, params);
-  return result.rows;
+  try {
+    const result = await getPool().query(sql, params);
+    return result.rows;
+  } catch (err) {
+    if (!isConnectionError(err)) throw err;
+    await resetPool();
+    const result = await getPool().query(sql, params);
+    return result.rows;
+  }
 }
 
 async function queryOne(sql, params = []) {
@@ -37,8 +60,13 @@ async function queryOne(sql, params = []) {
 }
 
 async function execute(sql, params = []) {
-  const p = getPool();
-  return await p.query(sql, params);
+  try {
+    return await getPool().query(sql, params);
+  } catch (err) {
+    if (!isConnectionError(err)) throw err;
+    await resetPool();
+    return await getPool().query(sql, params);
+  }
 }
 
 async function withTransaction(fn) {
@@ -692,6 +720,16 @@ async function getTodayAttendance(autoEcoleId) {
   `, [new Date().toISOString().split('T')[0], autoEcoleId]);
 }
 
+async function getAllAttendance(autoEcoleId) {
+  return query(`
+    SELECT a.*, s.full_name, s.qr_code FROM attendance a
+    JOIN students s ON a.student_id = s.id
+    WHERE a.auto_ecole_id = $1
+    ORDER BY a.date DESC, a.time_in DESC
+    LIMIT 100
+  `, [autoEcoleId]);
+}
+
 async function cleanupDuplicateAttendance(autoEcoleId) {
   const today = new Date().toISOString().split('T')[0];
   const result = await execute(`
@@ -1093,15 +1131,31 @@ async function deleteInvoice(id, autoEcoleId) {
 // ─── DOCUMENTS ───────────────────────────────────────────────────────────────
 
 async function createDocument(autoEcoleId, data) {
-  const row = await queryOne(
-    'INSERT INTO documents (auto_ecole_id, student_id, type, name, file_path, file_type, file_size, description, file_content) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
-    [autoEcoleId, data.student_id, data.type, data.name, data.file_path, data.file_type || null, data.file_size || null, data.description || null, data.file_content || null]
+  return queryOne(
+    `INSERT INTO documents (auto_ecole_id, student_id, type, name, file_path, file_type, file_size, description, file_content)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     RETURNING id, auto_ecole_id, student_id, type, name, file_path, file_type, file_size, description, created_at`,
+    [
+      autoEcoleId,
+      data.student_id,
+      data.type,
+      data.name || data.title || null,
+      data.file_path || data.path || null,
+      data.file_type || null,
+      data.file_size || null,
+      data.description || null,
+      data.file_content || null
+    ]
   );
-  return { id: row.id };
 }
 
 async function getDocumentsByStudent(studentId, autoEcoleId) {
-  return query('SELECT * FROM documents WHERE student_id = $1 AND auto_ecole_id = $2 ORDER BY created_at DESC', [studentId, autoEcoleId]);
+  return query(`
+    SELECT id, auto_ecole_id, student_id, type, name, file_path, file_type, file_size, description, created_at
+    FROM documents
+    WHERE student_id = $1 AND auto_ecole_id = $2
+    ORDER BY created_at DESC, id DESC
+  `, [studentId, autoEcoleId]);
 }
 
 async function getDocumentById(id, autoEcoleId) {
@@ -1124,7 +1178,13 @@ async function deleteDocumentsByStudent(studentId, autoEcoleId) {
 }
 
 async function getAllDocuments(autoEcoleId) {
-  return query('SELECT d.*, s.full_name FROM documents d JOIN students s ON d.student_id = s.id WHERE d.auto_ecole_id = $1 ORDER BY d.created_at DESC', [autoEcoleId]);
+  return query(`
+    SELECT d.id, d.auto_ecole_id, d.student_id, d.type, d.name, d.file_path, d.file_type, d.file_size, d.description, d.created_at, s.full_name
+    FROM documents d
+    JOIN students s ON d.student_id = s.id
+    WHERE d.auto_ecole_id = $1
+    ORDER BY d.created_at DESC, d.id DESC
+  `, [autoEcoleId]);
 }
 
 // ─── OFFERS ──────────────────────────────────────────────────────────────────

@@ -21,7 +21,15 @@ function apiFetch(url, options = {}) {
   if (slug) {
     options.headers = { ...options.headers, 'x-tenant-slug': slug };
   }
-  return fetch(url, options).then((r) => {
+  
+  // Ensure we don't cache API calls in Next.js 14+
+  options.cache = 'no-store';
+
+  // Add cache buster to prevent stale data
+  const sep = url.includes('?') ? '&' : '?';
+  const finalUrl = `${url}${sep}_t=${Date.now()}`;
+
+  return fetch(finalUrl, options).then((r) => {
     if (!r.ok) {
       if (r.status === 401 && typeof window !== 'undefined' && !window.location.pathname.endsWith('/login')) {
         // Optional: redirect to login or handle unauthorized
@@ -64,6 +72,7 @@ const api = {
     scanOut: (studentId) => apiJSON('/api/attendance', 'POST', { action: 'scanOut', studentId }),
     getByStudent: (studentId) => apiFetch(`/api/attendance?studentId=${studentId}`),
     getToday: () => apiFetch('/api/attendance?action=today'),
+    getHistory: () => apiFetch('/api/attendance?action=history'),
     getStudentStatus: (studentId) => apiFetch(`/api/attendance?action=status&studentId=${studentId}`),
     cleanupDuplicates: () => apiJSON('/api/attendance', 'POST', { action: 'cleanup' }),
   },
@@ -141,6 +150,7 @@ const api = {
       return data;
     },
     clearCache: (path) => { path ? _cache.delete(path) : _cache.clear(); },
+    viewAsJson: (path) => apiJSON('/api/files/view', 'POST', { path }),
     deleteFile: (path) => apiFetch(`/api/files?path=${encodeURIComponent(path)}`, { method: 'DELETE' }),
   },
   invoices: {
@@ -149,6 +159,7 @@ const api = {
     getByStudent: (studentId) => apiFetch(`/api/invoices?studentId=${studentId}`),
     getAll: () => apiFetch('/api/invoices'),
     updateStatus: (id, status) => apiJSON(`/api/invoices?id=${id}`, 'PUT', { status }),
+    print: (id) => apiFetch(`/api/invoices/print?id=${id}`, { method: 'POST' }),
     delete: (id) => apiFetch(`/api/invoices?id=${id}`, { method: 'DELETE' }),
   },
   documents: {

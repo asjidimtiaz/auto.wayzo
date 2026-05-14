@@ -3,7 +3,7 @@ import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import fs from 'fs';
 import path from 'path';
-import db from '@/lib/db';
+import * as db from '@/lib/db';
 import { requireTenant } from '@/lib/tenant';
 import { uploadToStorage } from '@/lib/storage';
 
@@ -33,19 +33,19 @@ export async function POST(request) {
     const exam_date      = override.exam_date      || '';
     const requested_date = override.requested_date || '';
 
-    const baseUrl = new URL(request.url).origin;
+    const baseUrl = null;
 
     // Load template via HTTP
-    const templateRes = await fetch(`${baseUrl}/demande avancementv15 jours.pdf`);
+    const templateRes = { ok: true };
     if (!templateRes.ok) throw new Error('Modèle introuvable');
-    const templateBytes = await templateRes.arrayBuffer();
+    const templateBytes = fs.readFileSync(path.join(process.cwd(), 'public', 'demande avancementv15 jours.pdf'));
 
     // Load fonts via HTTP
-    const fontRes = await fetch(`${baseUrl}/fonts/arial.ttf`);
-    const fontBdRes = await fetch(`${baseUrl}/fonts/arialbd.ttf`);
+    const fontRes = { ok: true };
+    const fontBdRes = { ok: true };
     if (!fontRes.ok || !fontBdRes.ok) throw new Error('Polices introuvables');
-    const fontBytes = await fontRes.arrayBuffer();
-    const fontBdBytes = await fontBdRes.arrayBuffer();
+    const fontBytes = fs.readFileSync(path.join(process.cwd(), 'public', 'fonts', 'arial.ttf'));
+    const fontBdBytes = fs.readFileSync(path.join(process.cwd(), 'public', 'fonts', 'arialbd.ttf'));
 
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
@@ -81,7 +81,7 @@ export async function POST(request) {
     const fileContent = `data:application/pdf;base64,${buffer.toString('base64')}`;
 
     const doc = await db.createDocument(tenant.autoEcoleId, {
-      student_id:  studentId,
+      student_id:  Number(studentId),
       type:        'Demande 15j',
       name:        `Demande 15j - ${student.full_name}`,
       file_path:   filePath,
@@ -91,7 +91,7 @@ export async function POST(request) {
       file_content: fileContent,
     });
 
-    return NextResponse.json({ success: true, path: filePath, documentId: doc.id });
+    return NextResponse.json({ success: true, path: filePath, documentId: doc.id, document: doc });
   } catch (error) {
     console.error('Error generating demande 15j:', error);
     return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 });

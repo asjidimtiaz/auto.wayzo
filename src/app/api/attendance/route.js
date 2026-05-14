@@ -10,6 +10,7 @@ export async function GET(req) {
     const studentId = searchParams.get('studentId');
     const action = searchParams.get('action');
     if (action === 'today') return NextResponse.json(await db.getTodayAttendance(ctx.autoEcoleId));
+    if (action === 'history') return NextResponse.json(await db.getAllAttendance(ctx.autoEcoleId));
     if (action === 'status' && studentId) return NextResponse.json({ status: await db.getStudentAttendanceStatus(ctx.autoEcoleId, Number(studentId)) });
     if (studentId) return NextResponse.json(await db.getAttendanceByStudent(Number(studentId), ctx.autoEcoleId));
     return NextResponse.json(await db.getTodayAttendance(ctx.autoEcoleId));

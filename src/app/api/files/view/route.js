@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs';
 import * as db from '@/lib/db';
-import { requireAuth } from '@/lib/tenant';
+import { requireTenant } from '@/lib/tenant';
 import { UPLOAD_DIR } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
@@ -19,13 +19,21 @@ const EXT_TO_MIME = {
 
 export async function GET(req) {
   try {
-    const user = requireAuth(req);
+    const user = await requireTenant(req);
     if (!user) {
       return new NextResponse('Non autorisé', { status: 401 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const filePath = searchParams.get('path');
+    const searchParams = req.nextUrl.searchParams;
+    let filePath = searchParams.get('path');
+    
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json();
+        if (body?.path) filePath = body.path;
+      } catch (e) {}
+    }
+
     if (!filePath) {
       return new NextResponse('Chemin manquant', { status: 400 });
     }
@@ -35,13 +43,24 @@ export async function GET(req) {
     const mime = EXT_TO_MIME[ext] || 'application/octet-stream';
     const fileName = path.basename(normalPath);
 
+    const isJsonRequested = req.method === 'POST';
+
     // 1. Try reading from disk (uploads directory)
     if (normalPath.startsWith('/uploads/')) {
       const diskPath = path.join(UPLOAD_DIR, normalPath.slice(9));
       try {
         if (fs.existsSync(diskPath)) {
           const buf = fs.readFileSync(diskPath);
-          return new NextResponse(buf, {
+          
+          if (isJsonRequested) {
+            return NextResponse.json({
+              data: buf.toString('base64'),
+              mime,
+              fileName
+            });
+          }
+
+          return new Response(new Uint8Array(buf), {
             status: 200,
             headers: {
               'Content-Type': mime,
@@ -73,7 +92,16 @@ export async function GET(req) {
           const docMime = doc.file_type
             ? EXT_TO_MIME[`.${doc.file_type}`] || mime
             : mime;
-          return new NextResponse(buf, {
+          
+          if (isJsonRequested) {
+            return NextResponse.json({
+              data: base64,
+              mime: docMime,
+              fileName: doc.name || fileName
+            });
+          }
+
+          return new Response(new Uint8Array(buf), {
             status: 200,
             headers: {
               'Content-Type': docMime,
@@ -93,4 +121,7 @@ export async function GET(req) {
     console.error('[files/view GET]', err);
     return new NextResponse('Erreur serveur', { status: 500 });
   }
+}
+export async function POST(req) {
+  return GET(req);
 }

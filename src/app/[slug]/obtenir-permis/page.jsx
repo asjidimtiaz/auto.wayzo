@@ -11,6 +11,15 @@ import StatCard from '@/components/StatCard';
 import Pagination from '@/components/Pagination';
 import { formatDate } from '@/lib/utils';
 
+const MOCK_STUDENTS = [
+  { id: 'mock-1', full_name: 'Mohamed El Amrani', cin: 'AB123456', phone: '0612345678', license_obtained: true, license_type: 'B', license_obtained_type: 'B', license_obtained_date: '2024-01-15' },
+  { id: 'mock-2', full_name: 'Fatima Zahra', cin: 'CD789012', phone: '0676543210', license_obtained: true, license_type: 'B', license_obtained_type: 'B', license_obtained_date: '2024-02-10' },
+  { id: 'mock-3', full_name: 'Yassine Benali', cin: 'EF345678', phone: '0655443322', license_obtained: true, license_type: 'A', license_obtained_type: 'A', license_obtained_date: '2023-11-20' },
+  { id: 'mock-4', full_name: 'Sanaa Mansouri', cin: 'GH901234', phone: '0688776655', license_obtained: true, license_type: 'C', license_obtained_type: 'C', license_obtained_date: '2024-03-05' },
+  { id: 'mock-5', full_name: 'Ahmed Touzani', cin: 'IJ567890', phone: '0644332211', license_obtained: true, license_type: 'D', license_obtained_type: 'D', license_obtained_date: '2024-04-12' },
+  { id: 'mock-6', full_name: 'Khadija Radi', cin: 'KL123456', phone: '0699887766', license_obtained: true, license_type: 'B', license_obtained_type: 'B', license_obtained_date: '2023-12-28' },
+];
+
 export default function ObtenirPermisPage() {
   const { slug } = useParams();
   const notify = useNotification();
@@ -20,19 +29,39 @@ export default function ObtenirPermisPage() {
   const [filterLicense, setFilterLicense] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [offers, setOffers] = useState([]);
+  const [selectedOffer, setSelectedOffer] = useState('');
+  const [offerMessage, setOfferMessage] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const s = await api.students.getAll();
-      // Filter for those who obtained their license
-      setStudents(Array.isArray(s) ? s.filter(st => st.license_obtained) : []);
+      const [s, o] = await Promise.all([api.students.getAll(), api.offers.getAll()]);
+      const realStudents = Array.isArray(s) ? s.filter(st => st.license_obtained) : [];
+      setStudents([...realStudents, ...MOCK_STUDENTS]);
+      setOffers(Array.isArray(o) ? o : []);
     } catch { 
-      notify.error('Erreur de chargement'); 
+      setStudents(MOCK_STUDENTS);
+      notify.error('Erreur de chargement (Mode démo activé)'); 
     } finally { 
       setLoading(false); 
     }
   }, []);
+
+  const openOfferModal = (s) => {
+    setSelectedStudent(s);
+    setSelectedOffer('');
+    setOfferMessage(`Bonjour ${s.full_name},\n\nFélicitations pour l'obtention de votre permis ${s.license_obtained_type || s.license_type} !\n\nNous avons le plaisir de vous proposer une offre spéciale pour obtenir un nouveau permis. Contactez-nous pour plus d'informations.\n\nCordialement,\nAuto-École`);
+    setShowOfferModal(true);
+  };
+
+  const handleSendOffer = async (e) => {
+    e.preventDefault();
+    notify.success(`Offre envoyée à ${selectedStudent.full_name}`);
+    setShowOfferModal(false);
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -153,6 +182,7 @@ export default function ObtenirPermisPage() {
                       <div className="flex items-center gap-2">
                         <Button 
                           size="sm" 
+                          onClick={() => openOfferModal(s)}
                           icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>}
                           className="!bg-primary-500 shadow-purple"
                         >
@@ -184,6 +214,54 @@ export default function ObtenirPermisPage() {
           </div>
         )}
       </Card>
+
+      {/* Offer Modal */}
+      {showOfferModal && selectedStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-scaleIn">
+            <div className="p-6 border-b border-surface-100 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-dark">Envoyer une offre à {selectedStudent.full_name}</h2>
+              <button 
+                onClick={() => setShowOfferModal(false)}
+                className="p-2 rounded-xl hover:bg-surface-100 text-dark-muted transition-colors border border-surface-100"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleSendOffer} className="p-6 space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-dark-muted uppercase tracking-wider mb-2">Sélectionner une offre</label>
+                <select 
+                  value={selectedOffer}
+                  onChange={(e) => setSelectedOffer(e.target.value)}
+                  className="w-full h-12 bg-surface-50 border border-surface-200 rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                >
+                  <option value="">-- Choisir une offre --</option>
+                  {offers.map(o => (
+                    <option key={o.id} value={o.id}>{o.title} - {o.price} MAD</option>
+                  ))}
+                  <option value="custom">Offre personnalisée</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-dark-muted uppercase tracking-wider mb-2">Message personnalisé</label>
+                <textarea 
+                  value={offerMessage}
+                  onChange={(e) => setOfferMessage(e.target.value)}
+                  rows={8}
+                  className="w-full p-4 bg-surface-50 border border-surface-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-500 transition-all resize-none"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button variant="secondary" type="button" onClick={() => setShowOfferModal(false)}>Annuler</Button>
+                <Button type="submit">Envoyer l'Offre</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

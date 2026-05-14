@@ -3,7 +3,7 @@ import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import fs from 'fs';
 import path from 'path';
-import db from '@/lib/db';
+import * as db from '@/lib/db';
 import { requireTenant } from '@/lib/tenant';
 import { uploadToStorage } from '@/lib/storage';
 
@@ -86,7 +86,7 @@ export async function POST(request) {
     const filePath   = await uploadToStorage(buffer, 'receipts', fileName, 'application/pdf');
     const fileContent = `data:application/pdf;base64,${buffer.toString('base64')}`;
 
-    await db.createDocument(tenant.autoEcoleId, {
+    const doc = await db.createDocument(tenant.autoEcoleId, {
       student_id:  payment.student_id,
       type:        'Reçu',
       name:        `Reçu - ${payment.id}`,
@@ -97,7 +97,7 @@ export async function POST(request) {
       file_content: fileContent,
     });
 
-    return NextResponse.json({ success: true, path: filePath });
+    return NextResponse.json({ success: true, path: filePath, documentId: doc.id, document: doc });
   } catch (error) {
     console.error('Error generating receipt:', error);
     return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 });

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
@@ -11,9 +11,10 @@ import Button from '@/components/Button';
 import StatCard from '@/components/StatCard';
 import Pagination from '@/components/Pagination';
 import { formatDate, formatCurrency, formatDuration, today } from '@/lib/utils';
+import { X, FileText, Download, ExternalLink, Printer, Eye } from 'lucide-react';
 
 const TABS = ['Informations', 'Paiements', 'Présences', 'Stages', 'Documents', 'Incidents'];
-const STATUS_BADGE = { 'En formation': 'info', 'Permis obtenu': 'success', 'Suspendu': 'warning', 'Abandonné': 'danger' };
+const STATUS_BADGE = { 'En formation': 'info', 'Permis obtenu': 'success', 'Inactif': 'gray' };
 const TYPE_BADGE = { Séance: 'info', Examen: 'warning', Code: 'purple', Plateau: 'success' };
 const STATUS_STAGE_BADGE = { Planifié: 'info', Terminé: 'gray', Réussi: 'success', Échoué: 'danger', Annulé: 'gray' };
 
@@ -56,19 +57,42 @@ export default function StudentDetailPage() {
   const [incidentForm, setIncidentForm] = useState({ type: '', severity: 'Avertissement', description: '', date: today() });
   const [incidentLoading, setIncidentLoading] = useState(false);
 
+  // Avancement Modal
+  const [showAvancementModal, setShowAvancementModal] = useState(false);
+  const [avancementStep, setAvancementStep] = useState(1);
+  const [avancementForm, setAvancementForm] = useState({
+    school_name: '', address: '', phone: '', city: '', doc_date: today(),
+    full_name: '', cin: '', birth_date: '', birth_place: '', student_address: '',
+    web_ref: '', license_type: 'Permis B (Voiture)',
+    date_code_prevue: '', date_code_demandee: '',
+    date_conduite_prevue: '', date_conduite_demandee: '',
+    motif: ''
+  });
+  const [avancementLoading, setAvancementLoading] = useState(false);
+
   // Doc Review modal
   const [showDocModal, setShowDocModal] = useState(false);
   const [docType, setDocType] = useState('contract');
   const [docForm, setDocForm] = useState({});
   const [docLoading, setDocLoading] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
+    
+    console.log('Loading student data for ID:', id);
     setLoading(true);
+    
     try {
-      // 1. Load core student data
-      const s = await api.students.getById(id);
+      // 1. Load core student data first (Essential)
+      const s = await api.students.getById(id).catch(err => {
+        console.error('Core data fetch error:', err);
+        return { error: 'Fetch failed' };
+      });
+
       if (!s || s.error) {
+        console.error('Student not found or error:', s?.error);
         notify.error('Étudiant non trouvé');
         router.push(`/${slug}/students`);
         return;
@@ -78,23 +102,57 @@ export default function StudentDetailPage() {
       setPayments(s.payments || []);
       setAttendance(s.attendance || []);
 
-      // 2. Load secondary data asynchronously (non-blocking)
-      api.stages.getByStudent(id).then(res => setStages(Array.isArray(res) ? res : [])).catch(() => {});
-      api.stages.getStudentSessionTimeStats(id).then(res => setSessionStats(res)).catch(() => {});
-      api.incidents.getByStudent(id).then(res => setIncidents(Array.isArray(res) ? res : [])).catch(() => {});
-      api.documents.getByStudent(id).then(res => setDocuments(Array.isArray(res) ? res : [])).catch(() => {});
-      api.paymentSchedules.getByStudent(id).then(res => setSchedules(Array.isArray(res) ? res : [])).catch(() => {});
-      api.invoices.getByStudent(id).then(res => setInvoices(Array.isArray(res) ? res : [])).catch(() => {});
+      // 2. Load secondary data in parallel with independent error handling
+      // We wrap each in a try-catch or catch block to ensure one failure doesn't block others
+      const secondaryData = await Promise.allSettled([
+        api.stages.getByStudent(id),
+        api.incidents.getByStudent(id),
+        api.documents.getByStudent(id),
+        api.paymentSchedules.getByStudent(id),
+        api.invoices.getByStudent(id)
+      ]);
+
+      if (secondaryData[0].status === 'fulfilled') setStages(Array.isArray(secondaryData[0].value) ? secondaryData[0].value : []);
+      if (secondaryData[1].status === 'fulfilled') setIncidents(Array.isArray(secondaryData[1].value) ? secondaryData[1].value : []);
+      if (secondaryData[2].status === 'fulfilled') setDocuments(Array.isArray(secondaryData[2].value) ? secondaryData[2].value : []);
+      if (secondaryData[3].status === 'fulfilled') setSchedules(Array.isArray(secondaryData[3].value) ? secondaryData[3].value : []);
+      if (secondaryData[4].status === 'fulfilled') setInvoices(Array.isArray(secondaryData[4].value) ? secondaryData[4].value : []);
+
+      // 3. Optional: Load session stats separately as it might be slower/missing
+      api.stages.getStudentSessionTimeStats(id)
+        .then(res => setSessionStats(res))
+        .catch(err => console.warn('Session stats failed:', err));
 
     } catch (err) {
-      console.error('Load error:', err);
-      notify.error('Erreur de chargement');
+      console.error('Fatal load error:', err);
+      notify.error('Erreur lors du chargement des données');
     } finally {
+      console.log('Loading complete for ID:', id);
       setLoading(false);
     }
   }, [id, slug, router]);
 
-  useEffect(() => { load(); }, [load]);
+  // Safety timeout to ensure loading state is always released
+  useEffect(() => {
+    if (loading) {
+      const timer = setTimeout(() => {
+        console.warn('Loading safety timeout reached');
+        setLoading(false);
+      }, 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    if (id) {
+      load();
+    }
+  }, [id, load]);
+
+  function prependDocument(doc) {
+    if (!doc?.id) return;
+    setDocuments((current) => [doc, ...current.filter((item) => item.id !== doc.id)]);
+  }
 
   async function handlePaySubmit(e) {
     e.preventDefault(); setPayLoading(true);
@@ -141,26 +199,110 @@ export default function StudentDetailPage() {
     if (!file) return;
     try {
       const res = await api.files.upload(file);
-      if (res.path) {
+      const filePath = res.path || res.filePath;
+      if (filePath) {
         await api.documents.create({
           student_id: parseInt(id),
-          title: file.name,
-          path: res.path,
-          type: 'Upload'
+          name: file.name,
+          file_path: filePath,
+          type: 'Upload',
+          file_type: file.name.split('.').pop() || null,
+          file_size: file.size
         });
         notify.success('Document ajouté');
         await load();
       }
-    } catch { notify.error('Erreur lors de l\'envoi'); }
+    } catch { 
+      notify.error('Erreur lors de l\'envoi'); 
+    }
+  }
+
+  async function handleDocumentAction(doc, mode = 'view') {
+    let path = doc.file_path || doc.path || doc.url;
+    
+    if (!path) return notify.error('Chemin du fichier introuvable');
+    
+    // Standard path-based handling
+    if (path.toLowerCase().endsWith('.pdf')) {
+      try {
+        const result = await api.files.viewAsJson(path);
+        if (result && result.data) {
+          const binaryString = window.atob(result.data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+          const blob = new Blob([bytes], { type: result.mime || 'application/pdf' });
+          const fileURL = URL.createObjectURL(blob);
+          processFileAction(fileURL, mode, doc.name || doc.title || 'document.pdf');
+          return;
+        }
+      } catch (err) {
+        console.warn('Document action failed, falling back to direct link:', err);
+      }
+    }
+    
+    window.open(`/api/files/view?path=${encodeURIComponent(path)}`, '_blank');
+  }
+
+  function processFileAction(fileURL, mode, filename) {
+    if (mode === 'print') {
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = fileURL;
+      document.body.appendChild(iframe);
+      iframe.onload = () => {
+        setTimeout(() => {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+          setTimeout(() => document.body.removeChild(iframe), 1000);
+        }, 200);
+      };
+    } else if (mode === 'download') {
+      const a = document.createElement('a');
+      a.href = fileURL;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } else {
+      window.open(fileURL, '_blank');
+    }
+  }
+
+  function handleViewDocument(doc) {
+    handleDocumentAction(doc, 'view');
+  }
+
+  function handleDownloadDocument(doc) {
+    handleDocumentAction(doc, 'download');
+  }
+
+  function handlePrintDocument(doc) {
+    handleDocumentAction(doc, 'print');
   }
 
   async function handleDeleteDocument(docId) {
-    if (!window.confirm('Voulez-vous supprimer ce document ?')) return;
+    const doc = documents.find(d => d.id === docId);
+    if (!doc) return;
+    
+    const ok = await confirmDelete('ce document');
+    if (!ok) return;
+
     try {
+      // Delete record from DB
       await api.documents.delete(docId);
+      
+      // Attempt to delete physical file if path exists
+      const filePath = doc.file_path || doc.path;
+      if (filePath) {
+        await api.files.deleteFile(filePath).catch(err => console.warn('File deletion failed, but DB record removed:', err));
+      }
+      
       notify.success('Document supprimé');
       await load();
-    } catch { notify.error('Erreur lors de la suppression'); }
+    } catch (err) { 
+      console.error('Delete error:', err);
+      notify.error('Erreur lors de la suppression'); 
+    }
   }
 
   async function handleDeleteAllDocuments() {
@@ -210,8 +352,35 @@ export default function StudentDetailPage() {
         license_type: student.license_type || 'B',
         registration_date: student.registration_date ? new Date(student.registration_date).toISOString().split('T')[0] : now,
         contract_number: '1',
-        document_date: now
+        document_date: now,
+        
+        // Specific for Demande 15
+        last_name: (student.full_name || '').split(' ')[0] || '',
+        first_name: (student.full_name || '').split(' ').slice(1).join(' ') || '',
+        exam_date_planned: '',
+        exam_date_requested: ''
       });
+      if (type === 'avancement') {
+        setAvancementForm({
+          ...avancementForm,
+          school_name: settings.school_name || '',
+          address: settings.address || '',
+          phone: settings.phone || '',
+          city: settings.city || '',
+          doc_date: today(),
+          full_name: student.full_name || '',
+          cin: student.cin || '',
+          birth_date: student.birth_date || '',
+          birth_place: student.birth_place || '',
+          student_address: student.address || '',
+          web_ref: student.web_reference || '',
+          license_type: student.license_type === 'B' ? 'Permis B (Voiture)' : student.license_type || 'Permis B (Voiture)'
+        });
+        setAvancementStep(1);
+        setShowAvancementModal(true);
+        return;
+      }
+
       setShowDocModal(true);
     } catch { 
       notify.error('Erreur lors de la préparation du document'); 
@@ -228,32 +397,34 @@ export default function StudentDetailPage() {
       else if (docType === 'demande15') res = await api.demande15.generate(id, docForm);
       else if (docType === 'avancement') res = await api.contratAvancement.generate(id, docForm);
       
-      if (res?.success && res?.path) {
-        notify.success('Document généré avec succès');
+      if (res?.success) {
         setShowDocModal(false);
+        prependDocument(res.document);
+        notify.success('Document généré avec succès');
         
-        // Finalize the URL and filename
-        const rawPath = res.path.startsWith('/') ? res.path : `/${res.path}`;
-        const fileName = rawPath.split('/').pop();
-        const finalUrl = encodeURI(rawPath);
-        
-        // Trigger download
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = finalUrl;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        
-        setTimeout(() => {
-          document.body.removeChild(a);
-        }, 100);
+        // Finalize the URL and filename if path exists
+        const path = res.path || res.url;
+        if (path) {
+          const rawPath = path.startsWith('/') ? path : `/${path}`;
+          const fileName = rawPath.split('/').pop();
+          const finalUrl = encodeURI(rawPath);
+          
+          // Trigger download
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = finalUrl;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          
+          setTimeout(() => {
+            document.body.removeChild(a);
+          }, 100);
+        }
         
         await load();
       } else {
-        const errorMsg = res?.error || 'Une erreur inconnue est survenue';
-        notify.error('Erreur lors de la génération : ' + errorMsg);
-        console.error('Generation failed:', res);
+        notify.error('Le serveur n\'a pas renvoyé de document');
       }
     } catch (err) { 
       console.error('Submission error:', err);
@@ -262,12 +433,88 @@ export default function StudentDetailPage() {
       setDocLoading(false);
     }
   }
+   async function handleAvancementSubmit() {
+    setAvancementLoading(true);
+    try {
+      const res = await api.contratAvancement.generate(id, avancementForm);
+      if (res?.success) {
+        setShowAvancementModal(false);
+        prependDocument(res.document);
+        notify.success('Contrat d\'avancement généré');
+        const path = res.path || res.url;
+        if (path) {
+          const rawPath = path.startsWith('/') ? path : `/${path}`;
+          const finalUrl = encodeURI(rawPath);
+          const a = document.createElement('a');
+          a.href = finalUrl;
+          a.download = rawPath.split('/').pop();
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }
+        
+        // Targeted refresh for documents to ensure they show up immediately
+        const docs = await api.documents.getByStudent(id);
+        if (Array.isArray(docs)) setDocuments(docs);
+        
+        // Full reload to be safe
+        load();
+      }
+    } catch (err) {
+      console.error('Avancement error:', err);
+      notify.error('Erreur lors de la génération');
+    } finally {
+      setAvancementLoading(false);
+      setDocLoading(false); // Reset this too to clear any stuck UI
+    }
+  }
+
+
+  async function handlePrintInvoice(invoiceId) {
+    try {
+      const res = await api.invoices.print(invoiceId);
+      if (res && res.data) {
+        prependDocument(res.document);
+        const binaryString = window.atob(res.data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = url;
+        document.body.appendChild(iframe);
+        iframe.onload = () => {
+          setTimeout(() => {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            setTimeout(() => {
+              document.body.removeChild(iframe);
+              URL.revokeObjectURL(url);
+            }, 1000);
+          }, 200);
+        };
+        notify.success('Facture générée avec succès');
+        await load();
+      } else {
+        notify.error('Erreur lors de la génération de la facture');
+      }
+    } catch (err) {
+      console.error(err);
+      notify.error('Erreur de connexion');
+    }
+  }
 
   async function handlePrintReceipt(paymentId) {
     try {
       const res = await api.payments.generateReceipt(paymentId);
       if (res.success && res.path) {
+        prependDocument(res.document);
         window.open(res.path, '_blank');
+        await load();
       } else {
         notify.error('Erreur lors de la génération du reçu');
       }
@@ -499,7 +746,16 @@ export default function StudentDetailPage() {
                             <p className="text-[10px] text-dark-muted">{formatDate(inv.issue_date)} · {formatCurrency(inv.amount)}</p>
                           </div>
                         </div>
-                        <Badge variant={inv.status === 'Payée' ? 'success' : 'info'}>{inv.status}</Badge>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => handlePrintInvoice(inv.id)} 
+                            className="p-1.5 rounded-lg hover:bg-primary-50 text-dark-muted hover:text-primary-600 transition-colors"
+                            title="Imprimer la facture"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                          </button>
+                          <Badge variant={inv.status === 'Payée' ? 'success' : 'info'}>{inv.status}</Badge>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -689,7 +945,7 @@ export default function StudentDetailPage() {
                   <h3 className="font-semibold text-dark">Documents</h3>
                   {documents.length > 0 && (
                     <button onClick={handleDeleteAllDocuments} className="p-1.5 rounded-lg hover:bg-accent-red/10 text-accent-red transition-colors tooltip" title="Supprimer tous les documents">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1v3M4 7h16" /></svg>
                     </button>
                   )}
                  <label className="cursor-pointer p-1.5 rounded-lg hover:bg-surface-100 text-primary-600 transition-colors tooltip" title="Ajouter un document">
@@ -700,36 +956,54 @@ export default function StudentDetailPage() {
               
               <div className="space-y-3">
                  {/* Static Contract Generator */}
-                 <div className="flex items-center justify-between p-3 rounded-xl border border-surface-200 bg-surface-50">
-                    <div className="flex items-center gap-3">
-                       <div className="w-10 h-10 rounded-lg bg-accent-red/10 flex items-center justify-center text-accent-red">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2zm6-14v-2.586L15.586 7H13zm-2 9H9v-2h2v2zm4 0h-2v-2h2v2zm0-4H9v-2h6v2z" /></svg>
-                       </div>
-                       <div>
-                          <p className="text-sm font-semibold text-dark">Contrat de formation</p>
-                          <p className="text-[10px] uppercase tracking-wider font-bold text-primary-600">Document Système</p>
-                       </div>
-                    </div>
-                     <Button size="sm" variant="secondary" onClick={() => handleGenerate('contract')} disabled={docLoading}>
-                       {docLoading && docType === 'contract' ? 'Chargement...' : 'Ouvrir'}
-                     </Button>
-                 </div>
+                  <div className="flex items-center justify-between p-4 rounded-xl border border-surface-200 bg-surface-50 shadow-sm">
+                     <div className="flex items-center gap-3 flex-1">
+                        <div className="w-10 h-10 rounded-lg bg-accent-red/10 flex items-center justify-center text-accent-red flex-shrink-0">
+                           <FileText size={20} />
+                        </div>
+                        <div>
+                           <p className="text-sm font-bold text-dark">Contrat de formation</p>
+                           <p className="text-[10px] uppercase tracking-wider font-extrabold text-primary-600">Document Système</p>
+                        </div>
+                     </div>
+                      <button 
+                        onClick={() => handleGenerate('contract')} 
+                        disabled={docLoading}
+                        className="px-5 py-2 rounded-xl bg-white border border-surface-200 text-dark font-bold text-sm hover:bg-surface-100 transition-all shadow-sm disabled:opacity-50"
+                      >
+                        {docLoading && docType === 'contract' ? '...' : 'Ouvrir'}
+                      </button>
+                  </div>
 
                  {/* Dynamic Documents List */}
                  {documents.map(doc => (
-                    <div key={doc.id} className="flex items-center justify-between p-3 rounded-xl border border-surface-100 bg-white group">
-                       <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600">
-                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    <div key={doc.id} className="flex items-center justify-between p-4 rounded-xl border border-surface-100 bg-white hover:border-primary-300 transition-all shadow-sm">
+                       <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${doc.type === 'Facture' ? 'bg-accent-blue/10 text-accent-blue' : doc.type === 'Reçu' ? 'bg-accent-green/10 text-accent-green' : 'bg-primary-50 text-primary-600'}`}>
+                             <FileText size={20} />
                           </div>
-                          <div className="min-w-0">
-                             <p className="text-sm font-semibold text-dark truncate">{doc.title}</p>
-                             <p className="text-[10px] text-dark-muted">{doc.type || 'Fichier'}</p>
+                          <div className="min-w-0 overflow-hidden">
+                             <p className="text-sm font-bold text-dark truncate">{doc.name || doc.title || 'Document'}</p>
+                             <div className="flex items-center gap-2">
+                               <p className="text-[10px] text-dark-muted uppercase font-bold tracking-wider">{doc.type || 'Fichier'}</p>
+                               <span className="text-[10px] text-dark-muted/60">·</span>
+                               <p className="text-[10px] text-dark-muted font-medium">{formatDate(doc.created_at)}</p>
+                             </div>
                           </div>
                        </div>
-                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => window.open('/api/files/view?path=' + encodeURIComponent(doc.file_path || doc.path), '_blank')} className="p-1.5 rounded-lg hover:bg-surface-100 text-dark-muted" title="Voir"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
-                          <button onClick={() => handleDeleteDocument(doc.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500" title="Supprimer"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                       <div className="flex items-center gap-2 ml-4">
+                          <button 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setSelectedDoc(doc); 
+                              setShowPreviewModal(true); 
+                            }} 
+                            className="p-2 rounded-xl bg-surface-50 text-dark-muted hover:bg-primary-50 hover:text-primary-600 transition-all border border-surface-200" 
+                            title="Voir le document"
+                          >
+                            <Eye size={18} />
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); handleDeleteDocument(doc.id); }} className="p-2 rounded-xl bg-surface-50 text-accent-red hover:bg-accent-red/10 transition-all border border-surface-200" title="Supprimer"><X size={18} /></button>
                        </div>
                     </div>
                  ))}
@@ -780,7 +1054,109 @@ export default function StudentDetailPage() {
         </div>
       )}
 
-      {/* Stage modal */}
+      {/* Avancement Modal */}
+      {showAvancementModal && (
+        <div className="modal-overlay" onClick={() => setShowAvancementModal(false)}>
+          <div className="modal-content !max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="text-xl font-bold text-dark">Informations - Contrat d'Avancement</h2>
+              <button onClick={() => setShowAvancementModal(false)} className="p-2 rounded-xl hover:bg-surface-100 text-dark-muted"><X size={20} /></button>
+            </div>
+            
+            <div className="modal-body p-8 overflow-y-auto space-y-10 custom-scrollbar">
+              {/* Section 1: Auto-école */}
+              <div>
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="w-8 h-8 rounded-lg bg-accent-green/10 flex items-center justify-center text-accent-green">
+                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                  </div>
+                  <h3 className="font-bold text-dark uppercase tracking-wider text-sm">Auto-École</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div><label className="form-label !text-dark-light">Nom de l'Auto-École</label><input value={avancementForm.school_name} onChange={e => setAvancementForm({...avancementForm, school_name: e.target.value})} className="form-input !py-3 !rounded-xl" /></div>
+                  <div><label className="form-label !text-dark-light">Adresse</label><input value={avancementForm.address} onChange={e => setAvancementForm({...avancementForm, address: e.target.value})} className="form-input !py-3 !rounded-xl" /></div>
+                  <div><label className="form-label !text-dark-light">Téléphone</label><input value={avancementForm.phone} onChange={e => setAvancementForm({...avancementForm, phone: e.target.value})} className="form-input !py-3 !rounded-xl" /></div>
+                  <div><label className="form-label !text-dark-light">Ville</label><input value={avancementForm.city} onChange={e => setAvancementForm({...avancementForm, city: e.target.value})} className="form-input !py-3 !rounded-xl" /></div>
+                  <div><label className="form-label !text-dark-light">Date du Document</label><input type="date" value={avancementForm.doc_date} onChange={e => setAvancementForm({...avancementForm, doc_date: e.target.value})} className="form-input !py-3 !rounded-xl" /></div>
+                </div>
+              </div>
+
+              {/* Section 2: Candidat */}
+              <div className="pt-8 border-t border-surface-100">
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600">
+                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  </div>
+                  <h3 className="font-bold text-dark uppercase tracking-wider text-sm">Informations du Candidat</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2"><label className="form-label !text-dark-light">Nom Complet</label><input value={avancementForm.full_name} onChange={e => setAvancementForm({...avancementForm, full_name: e.target.value})} className="form-input !py-3 !rounded-xl" /></div>
+                  <div><label className="form-label !text-dark-light">CIN</label><input value={avancementForm.cin} onChange={e => setAvancementForm({...avancementForm, cin: e.target.value})} className="form-input !py-3 !rounded-xl" /></div>
+                  <div><label className="form-label !text-dark-light">Date de Naissance</label><input type="date" value={avancementForm.birth_date} onChange={e => setAvancementForm({...avancementForm, birth_date: e.target.value})} className="form-input !py-3 !rounded-xl" /></div>
+                  <div><label className="form-label !text-dark-light">Lieu de Naissance</label><input value={avancementForm.birth_place} onChange={e => setAvancementForm({...avancementForm, birth_place: e.target.value})} className="form-input !py-3 !rounded-xl" /></div>
+                  <div><label className="form-label !text-dark-light">Adresse du Candidat</label><input value={avancementForm.student_address} onChange={e => setAvancementForm({...avancementForm, student_address: e.target.value})} className="form-input !py-3 !rounded-xl" /></div>
+                </div>
+              </div>
+
+              {/* Section 3: Dates d'Examen */}
+              <div className="pt-8 border-t border-surface-100">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  <div><label className="form-label !text-dark-light">Réf. Web</label><input value={avancementForm.web_ref} onChange={e => setAvancementForm({...avancementForm, web_ref: e.target.value})} className="form-input !py-3 !rounded-xl" /></div>
+                  <div>
+                    <label className="form-label !text-dark-light">Type de Permis</label>
+                    <select value={avancementForm.license_type} onChange={e => setAvancementForm({...avancementForm, license_type: e.target.value})} className="form-select !py-3 !rounded-xl">
+                      {['Permis B (Voiture)', 'Permis A (Moto)', 'Permis C (Poids Lourd)', 'Permis D (Transport)'].map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-500">
+                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 00-2 2z" /></svg>
+                  </div>
+                  <h3 className="font-bold text-dark uppercase tracking-wider text-sm">Dates d'Examen</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div><label className="form-label !text-dark-light">Date examen Code (prévue)</label><input type="date" value={avancementForm.date_code_prevue} onChange={e => setAvancementForm({...avancementForm, date_code_prevue: e.target.value})} className="form-input !py-3 !rounded-xl" /></div>
+                  <div><label className="form-label !text-dark-light">Date Code demandée</label><input type="date" value={avancementForm.date_code_demandee} onChange={e => setAvancementForm({...avancementForm, date_code_demandee: e.target.value})} className="form-input !py-3 !rounded-xl" /></div>
+                  <div><label className="form-label !text-dark-light">Date examen Conduite (prévue)</label><input type="date" value={avancementForm.date_conduite_prevue} onChange={e => setAvancementForm({...avancementForm, date_conduite_prevue: e.target.value})} className="form-input !py-3 !rounded-xl" /></div>
+                  <div><label className="form-label !text-dark-light">Date Conduite demandée</label><input type="date" value={avancementForm.date_conduite_demandee} onChange={e => setAvancementForm({...avancementForm, date_conduite_demandee: e.target.value})} className="form-input !py-3 !rounded-xl" /></div>
+                </div>
+              </div>
+
+              {/* Section 4: Motif */}
+              <div className="pt-8 border-t border-surface-100">
+                <h3 className="font-bold text-dark uppercase tracking-wider text-sm mb-4">Motif</h3>
+                <div>
+                  <textarea 
+                    value={avancementForm.motif} 
+                    onChange={e => setAvancementForm({...avancementForm, motif: e.target.value})} 
+                    className="form-textarea !h-32 !rounded-2xl !p-6 !text-base" 
+                    placeholder="Motif de la demande d'avancement..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer !p-8 !bg-white border-t border-surface-100">
+              <div className="flex items-center justify-end gap-3 w-full">
+                <button onClick={() => setShowAvancementModal(false)} className="px-6 py-2.5 rounded-xl text-dark-muted font-bold hover:bg-surface-100 transition-all border border-surface-200">Annuler</button>
+                <button 
+                  onClick={handleAvancementSubmit} 
+                  disabled={avancementLoading}
+                  className="flex items-center gap-2 bg-[#10b981] hover:bg-[#0d9488] text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-green-500/20"
+                >
+                  {avancementLoading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Download size={18} />
+                  )}
+                  Générer le Contrat d'Avancement
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {showStageModal && (
         <div className="modal-overlay" onClick={() => setShowStageModal(false)}>
           <div className="modal-content !max-w-2xl" onClick={e => e.stopPropagation()}>
@@ -842,13 +1218,66 @@ export default function StudentDetailPage() {
         <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4 bg-dark/60 backdrop-blur-md animate-fadeIn">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-slideUp border border-surface-200">
             <div className="p-6 border-b border-surface-100 flex items-center justify-between bg-white sticky top-0 z-10">
-              <h2 className="text-xl font-bold text-dark">Informations du Contrat</h2>
-              <button onClick={() => setShowDocModal(false)} className="p-2 rounded-xl hover:bg-surface-100 text-dark-muted transition-colors border border-surface-100">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <h2 className="text-xl font-bold text-dark">{docType === 'demande15' ? 'Informations - Demande 15 Jours' : 'Informations du Contrat'}</h2>
+              <button onClick={() => setShowDocModal(false)} className="w-10 h-10 rounded-2xl flex items-center justify-center hover:bg-surface-100 text-dark-muted transition-all border border-surface-100">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
             
             <div className="p-8 overflow-y-auto flex-1 custom-scrollbar space-y-8 bg-surface-50/30">
+              {docType === 'demande15' ? (
+                <>
+                  {/* Demande 15 Jours Refined Layout */}
+                  <section>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-dark-light">Date du Document</label>
+                        <input type="date" value={docForm.document_date || ''} onChange={(e) => setDocForm({...docForm, document_date: e.target.value})} className="form-input" />
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="pt-6 border-t border-surface-100">
+                    <div className="flex items-center gap-2 mb-6">
+                      <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                      <h4 className="text-[11px] font-black text-dark/60 uppercase tracking-[0.2em]">CANDIDAT</h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-dark-light">Nom</label>
+                        <input type="text" value={docForm.last_name || ''} onChange={(e) => setDocForm({...docForm, last_name: e.target.value})} className="form-input" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-dark-light">Prenom</label>
+                        <input type="text" value={docForm.first_name || ''} onChange={(e) => setDocForm({...docForm, first_name: e.target.value})} className="form-input" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-dark-light">CINE N°</label>
+                        <input type="text" value={docForm.cin || ''} onChange={(e) => setDocForm({...docForm, cin: e.target.value})} className="form-input" />
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="pt-6 border-t border-surface-100">
+                    <div className="flex items-center gap-2 mb-6">
+                      <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      <h4 className="text-[11px] font-black text-dark/60 uppercase tracking-[0.2em]">DATES D'EXAMEN</h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-dark-light">Date examen prevue</label>
+                        <input type="date" value={docForm.exam_date_planned || ''} onChange={(e) => setDocForm({...docForm, exam_date_planned: e.target.value})} className="form-input" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-dark-light">Date demandee</label>
+                        <input type="date" value={docForm.exam_date_requested || ''} onChange={(e) => setDocForm({...docForm, exam_date_requested: e.target.value})} className="form-input" />
+                      </div>
+                    </div>
+                  </section>
+                </>
+              ) : (
+                <>
+                  {/* Existing Contract Layout */}
               {/* Auto-École Info */}
               <section>
                 <div className="flex items-center gap-2 mb-6">
@@ -950,15 +1379,103 @@ export default function StudentDetailPage() {
                     <input type="date" value={docForm.document_date || ''} onChange={(e) => setDocForm({...docForm, document_date: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-surface-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all bg-white" />
                   </div>
                 </div>
-              </section>
+                </section>
+              </>
+            )}
             </div>
             
             <div className="p-6 border-t border-surface-100 bg-white flex justify-end gap-3 sticky bottom-0 z-10">
-              <Button variant="secondary" onClick={() => setShowDocModal(false)} disabled={docLoading}>Annuler</Button>
-              <Button variant="primary" onClick={submitGenerate} loading={docLoading} className="min-w-[140px]">
-                {docLoading ? 'Génération...' : 'Générer le PDF'}
+              <Button variant="secondary" onClick={() => setShowDocModal(false)} disabled={docLoading} className="!rounded-xl px-8 h-12">Annuler</Button>
+              <Button 
+                onClick={submitGenerate} 
+                loading={docLoading} 
+                className={`!rounded-xl px-10 h-12 shadow-lg flex items-center gap-2 bg-primary-600 hover:bg-primary-700 shadow-primary-500/20`}
+              >
+                {docType === 'demande15' && !docLoading && (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                )}
+                {docLoading ? 'Génération...' : docType === 'demande15' ? 'Générer la Demande' : 'Générer le PDF'}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document Preview Modal */}
+      {showPreviewModal && selectedDoc && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-dark/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Header */}
+            <div className="flex items-center justify-between px-8 py-6 border-b border-surface-100">
+              <h3 className="text-[22px] font-bold text-dark">{selectedDoc.name || selectedDoc.title || 'Document'}</h3>
+              
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => handleViewDocument(selectedDoc)}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-xl text-[13px] font-bold hover:bg-primary-700 transition-all shadow-sm"
+                  >
+                    <ExternalLink size={16} />
+                    Ouvrir le PDF
+                  </button>
+                  <button 
+                    onClick={() => handlePrintDocument(selectedDoc)}
+                    className="flex items-center gap-2 px-4 py-2 bg-white text-dark border border-surface-200 rounded-xl text-[13px] font-bold hover:bg-surface-50 transition-all"
+                  >
+                    <Printer size={16} />
+                    Imprimer
+                  </button>
+                  <button 
+                    onClick={() => handleDownloadDocument(selectedDoc)}
+                    className="flex items-center gap-2 px-4 py-2 bg-white text-dark border border-surface-200 rounded-xl text-[13px] font-bold hover:bg-surface-50 transition-all"
+                  >
+                    <Download size={16} />
+                    Télécharger
+                  </button>
+                </div>
+                
+                <button 
+                  onClick={() => setShowPreviewModal(false)} 
+                  className="p-1 text-surface-400 hover:text-dark transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-20 flex flex-col items-center justify-center text-center">
+              <div className="w-24 h-24 bg-red-50/50 rounded-3xl flex items-center justify-center mb-8">
+                <FileText size={56} className="text-red-500" strokeWidth={1.5} />
+              </div>
+              
+              <h4 className="text-[24px] font-bold text-dark mb-3">{selectedDoc.name || selectedDoc.title}</h4>
+              <p className="text-[15px] text-surface-500 mb-10 max-w-md leading-relaxed">
+                Cliquez sur "Ouvrir le PDF" pour visualiser le document ou utilisez les options ci-dessus.
+              </p>
+
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => handleViewDocument(selectedDoc)}
+                  className="bg-primary-600 text-white px-10 h-14 rounded-2xl text-[15px] font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/20 flex items-center gap-2"
+                >
+                  <ExternalLink size={20} />
+                  Ouvrir le PDF
+                </button>
+                <button 
+                  onClick={() => handleDownloadDocument(selectedDoc)}
+                  className="bg-white text-dark border border-surface-200 px-10 h-14 rounded-2xl text-[15px] font-bold hover:bg-surface-50 transition-all flex items-center gap-2"
+                >
+                  <Download size={20} />
+                  Télécharger
+                </button>
+              </div>
+            </div>
+            
+            {/* Empty Footer for spacing as per design */}
+            <div className="h-4 bg-surface-50/30"></div>
           </div>
         </div>
       )}
