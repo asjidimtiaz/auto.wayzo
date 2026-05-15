@@ -187,6 +187,13 @@ const api = {
     getStats: () => apiFetch('/api/expenses?stats=1'),
     create: (data) => apiJSON('/api/expenses', 'POST', data),
     delete: (id) => apiFetch(`/api/expenses?id=${id}`, { method: 'DELETE' }),
+    recurring: {
+      getAll: () => apiFetch('/api/expenses/recurring'),
+      create: (data) => apiJSON('/api/expenses/recurring', 'POST', data),
+      update: (data) => apiJSON('/api/expenses/recurring', 'PUT', data),
+      delete: (id) => apiFetch(`/api/expenses/recurring?id=${id}`, { method: 'DELETE' }),
+      check: () => apiFetch('/api/expenses/recurring?check=1'),
+    }
   },
   // Super-admin
   superAdmin: {

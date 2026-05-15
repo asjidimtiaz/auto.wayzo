@@ -318,11 +318,37 @@ async function initDb() {
       tenant_id INT NOT NULL REFERENCES auto_ecoles(id) ON DELETE CASCADE,
       category VARCHAR(100) NOT NULL,
       subcategory VARCHAR(100),
+      group_name VARCHAR(100),
+      expense_type VARCHAR(50) DEFAULT 'Variable',
       amount DECIMAL(10,2) NOT NULL,
       date DATE NOT NULL DEFAULT CURRENT_DATE,
       notes TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
+  `);
+
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS recurring_expenses (
+      id SERIAL PRIMARY KEY,
+      auto_ecole_id INT NOT NULL REFERENCES auto_ecoles(id) ON DELETE CASCADE,
+      group_name VARCHAR(100) NOT NULL,
+      subcategory VARCHAR(100) NOT NULL,
+      amount DECIMAL(10,2) NOT NULL,
+      notes TEXT,
+      last_generated_month VARCHAR(7),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await p.query(`
+    DO $$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'expenses' AND column_name = 'group_name') THEN
+        ALTER TABLE expenses ADD COLUMN group_name VARCHAR(100);
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'expenses' AND column_name = 'expense_type') THEN
+        ALTER TABLE expenses ADD COLUMN expense_type VARCHAR(50) DEFAULT 'Variable';
+      END IF;
+    END $$
   `);
 
   // Migrations for existing tables
@@ -1390,10 +1416,10 @@ async function getAllExpenses(tenantId) {
 }
 
 async function createExpense(tenantId, data) {
-  const { category, subcategory, amount, date, notes } = data;
+  const { category, subcategory, amount, date, notes, group_name, expense_type } = data;
   return queryOne(
-    'INSERT INTO expenses (tenant_id, category, subcategory, amount, date, notes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-    [tenantId, category, subcategory, amount, date || new Date(), notes]
+    'INSERT INTO expenses (tenant_id, category, subcategory, amount, date, notes, group_name, expense_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+    [tenantId, category, subcategory, amount, date || new Date(), notes, group_name, expense_type || 'Variable']
   );
 }
 
@@ -1401,12 +1427,62 @@ async function deleteExpense(tenantId, id) {
   return query('DELETE FROM expenses WHERE id = $1 AND tenant_id = $2', [id, tenantId]);
 }
 
+// ─── RECURRING EXPENSES ───────────────────────────────────────────────────────
+
+async function getRecurringExpenses(autoEcoleId) {
+  return query('SELECT * FROM recurring_expenses WHERE auto_ecole_id = $1 ORDER BY group_name, subcategory', [autoEcoleId]);
+}
+
+async function createRecurringExpense(autoEcoleId, data) {
+  const { group_name, subcategory, amount, notes } = data;
+  return queryOne(
+    'INSERT INTO recurring_expenses (auto_ecole_id, group_name, subcategory, amount, notes) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+    [autoEcoleId, group_name, subcategory, amount, notes]
+  );
+}
+
+async function updateRecurringExpense(id, autoEcoleId, data) {
+  const { subcategory, amount, notes } = data;
+  return queryOne(
+    'UPDATE recurring_expenses SET subcategory = $1, amount = $2, notes = $3 WHERE id = $4 AND auto_ecole_id = $5 RETURNING *',
+    [subcategory, amount, notes, id, autoEcoleId]
+  );
+}
+
+async function deleteRecurringExpense(id, autoEcoleId) {
+  return execute('DELETE FROM recurring_expenses WHERE id = $1 AND auto_ecole_id = $2', [id, autoEcoleId]);
+}
+
+async function checkAndGenerateMonthlyExpenses(autoEcoleId) {
+  const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
+  const recurring = await getRecurringExpenses(autoEcoleId);
+  
+  const generatedCount = 0;
+  for (const item of recurring) {
+    if (item.last_generated_month !== currentMonth) {
+      await withTransaction(async (client) => {
+        // 1. Create the expense record
+        await client.query(
+          'INSERT INTO expenses (tenant_id, category, subcategory, group_name, expense_type, amount, date, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+          [autoEcoleId, 'fixed', item.subcategory, item.group_name, 'Fixed', item.amount, new Date(), `Généré automatiquement - ${item.notes || ''}`]
+        );
+        // 2. Update the template
+        await client.query(
+          'UPDATE recurring_expenses SET last_generated_month = $1 WHERE id = $2',
+          [currentMonth, item.id]
+        );
+      });
+    }
+  }
+  return { success: true };
+}
+
 async function getExpenseStats(tenantId) {
   const byCategory = await query(`
-    SELECT category, SUM(amount) as total 
+    SELECT group_name as category, SUM(amount) as total 
     FROM expenses 
     WHERE tenant_id = $1 
-    GROUP BY category
+    GROUP BY group_name
   `, [tenantId]);
 
   const monthly = await query(`
@@ -1451,4 +1527,5 @@ module.exports = {
   createIncident, getIncidentsByStudent, getAllIncidents, getUnresolvedIncidents,
   resolveIncident, deleteIncident, getStudentIncidentsCount,
   getAllExpenses, createExpense, deleteExpense, getExpenseStats,
+  getRecurringExpenses, createRecurringExpense, updateRecurringExpense, deleteRecurringExpense, checkAndGenerateMonthlyExpenses,
 };
