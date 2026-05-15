@@ -8,6 +8,7 @@ export async function GET(req) {
   try {
     const ctx = await requireTenant(req);
     if (!ctx) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    await db.initDb();
 
     const { searchParams } = new URL(req.url);
     if (searchParams.get('stats')) {
