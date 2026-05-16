@@ -69,7 +69,7 @@ export default function StatCard({
         style={{
           background: `linear-gradient(135deg, ${bg.from} 0%, ${bg.to} 100%)`,
           borderRadius: '14px',
-          padding: '22px 24px',
+          padding: size === 'sm' ? '14px 16px' : '22px 24px',
           position: 'relative',
           overflow: 'hidden',
           boxShadow: `0 4px 20px ${bg.shadow}, 0 1px 4px rgba(0,0,0,0.1)`,
@@ -83,14 +83,14 @@ export default function StatCard({
         <div style={{ position:'absolute', right:20, bottom:-28, width:70, height:70, borderRadius:'50%', background:'rgba(255,255,255,0.07)' }} />
         <div style={{ position:'absolute', left:-10, bottom:10, width:50, height:50, borderRadius:'50%', background:'rgba(255,255,255,0.06)' }} />
 
-        <p style={{ position:'relative', zIndex:1, color:'rgba(255,255,255,0.75)', fontSize:'10.5px', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'10px' }}>
+        <p style={{ position:'relative', zIndex:1, color:'rgba(255,255,255,0.75)', fontSize: size === 'sm' ? '9px' : '10.5px', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: size === 'sm' ? '6px' : '10px' }}>
           {title}
         </p>
 
         {loading ? (
           <div style={{ height:32, borderRadius:8, width:120, background:'rgba(255,255,255,0.2)' }} className="animate-pulse" />
         ) : (
-          <p style={{ position:'relative', zIndex:1, color:'#ffffff', fontSize:'28px', fontWeight:800, letterSpacing:'-0.03em', lineHeight:1 }}>
+          <p style={{ position:'relative', zIndex:1, color:'#ffffff', fontSize: size === 'sm' ? '20px' : '28px', fontWeight:800, letterSpacing:'-0.03em', lineHeight:1 }}>
             {value}
           </p>
         )}
@@ -104,7 +104,7 @@ export default function StatCard({
         background: '#ffffff',
         border: '1px solid #e8edf6',
         borderRadius: '14px',
-        padding: '20px 22px',
+        padding: size === 'sm' ? '12px 14px' : '20px 22px',
         boxShadow: '0 1px 3px rgba(13,27,46,0.06), 0 1px 2px rgba(13,27,46,0.04)',
         transition: 'all 0.2s ease',
         cursor: onClick ? 'pointer' : 'default',
@@ -129,13 +129,13 @@ export default function StatCard({
 
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', paddingTop:'4px' }}>
         <div style={{ flex:1, minWidth:0 }}>
-          <p style={{ fontSize:'10.5px', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'#7f93ae', marginBottom:'10px' }}>
+          <p style={{ fontSize: size === 'sm' ? '9px' : '10.5px', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'#7f93ae', marginBottom: size === 'sm' ? '4px' : '10px' }}>
             {title}
           </p>
           {loading ? (
             <div style={{ height:34, borderRadius:8, width:80, background:'#f1f4f9' }} className="animate-pulse" />
           ) : (
-            <p style={{ fontSize:'30px', fontWeight:800, color:'#0d1b2e', lineHeight:1, letterSpacing:'-0.03em' }}>
+            <p style={{ fontSize: size === 'sm' ? '22px' : '30px', fontWeight:800, color:'#0d1b2e', lineHeight:1, letterSpacing:'-0.03em' }}>
               {value}
             </p>
           )}
@@ -153,10 +153,10 @@ export default function StatCard({
 
         {icon && (
           <div
-            style={{ width:44, height:44, borderRadius:12, flexShrink:0, marginLeft:14, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:`0 0 0 6px ${cfg.ring}` }}
+            style={{ width: size === 'sm' ? '32px' : '44px', height: size === 'sm' ? '32px' : '44px', borderRadius: size === 'sm' ? '10px' : '12px', flexShrink:0, marginLeft:14, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:`0 0 0 ${size === 'sm' ? '4px' : '6px'} ${cfg.ring}` }}
             className={cfg.icon}
           >
-            <span style={{ width:22, height:22, display:'block' }}>{icon}</span>
+            <span style={{ width: size === 'sm' ? '16px' : '22px', height: size === 'sm' ? '16px' : '22px', display:'block' }}>{icon}</span>
           </div>
         )}
       </div>
