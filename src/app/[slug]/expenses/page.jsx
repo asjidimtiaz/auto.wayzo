@@ -11,7 +11,7 @@ import Pagination from '@/components/Pagination';
 import StatCard from '@/components/StatCard';
 import EmptyState from '@/components/EmptyState';
 import { formatDate, formatCurrency, today } from '@/lib/utils';
-import { Settings, Plus, Trash2, Edit2, Car, Home, Wallet, Info, ChevronRight, History, Calendar, Search, Filter, Download, Database, PieChart, AlertCircle } from 'lucide-react';
+import { Settings, Plus, Trash2, Edit2, Car, Home, Wallet, Info, ChevronRight, Bike, Calendar, Search, Filter, Download, Database, PieChart, AlertCircle, History, FileText } from 'lucide-react';
 
 const EXPENSE_GROUPS = [
   {
@@ -33,7 +33,7 @@ const EXPENSE_GROUPS = [
   {
     id: 'Moto',
     label: 'Moto',
-    icon: <History className="w-5 h-5" />,
+    icon: <Bike className="w-5 h-5" />,
     color: 'purple',
     fixed: ['Assurance', 'Taxe annuelle'],
     variable: ['Carburant', 'Réparations', 'Autres dépenses']
@@ -238,9 +238,11 @@ export default function ExpensesPage() {
     setSaving(true);
     try {
       await api.expenses.recurring.create(recurringForm);
-      notify.success('Dépense fixe configurée');
+      // Immediately trigger check to generate journal entry for the current month if missing
+      await api.expenses.recurring.check(); 
+      notify.success('Dépense fixe configurée et activée');
       setShowRecurringModal(false);
-      setRecurringForm({ group_name: activeGroup, subcategory: '', amount: '', notes: '' });
+      setRecurringForm({ group_name: activeGroup, subcategory: currentGroup.fixed[0], amount: '', notes: '' });
       await load();
     } catch { notify.error('Erreur lors de la configuration'); }
     finally { setSaving(false); }
@@ -319,44 +321,56 @@ export default function ExpensesPage() {
   const currentGroup = EXPENSE_GROUPS.find(g => g.id === activeGroup);
 
   return (
-    <div className="animate-fadeIn space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center text-red-600 shadow-sm border border-red-50/50">
-            <Wallet className="w-7 h-7" />
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-dark-muted uppercase tracking-[0.2em] mb-0.5">Comptabilité & Gestion</p>
-            <h1 className="text-3xl font-black text-dark tracking-tight">Dépenses</h1>
+    <div className="animate-fadeIn space-y-4">
+      {/* Customized Swapped Header Layout */}
+      <div className="flex flex-col lg:grid lg:grid-cols-3 lg:items-center gap-4">
+        {/* Left: Navigation Tabs */}
+        <div className="flex justify-start">
+          <div className="flex items-center gap-1 p-1 bg-white border border-surface-200 rounded-xl shadow-sm">
+            {EXPENSE_GROUPS.map(group => (
+              <button
+                key={group.id}
+                onClick={() => { setActiveGroup(group.id); setCurrentPage(1); }}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-black transition-all ${
+                  activeGroup === group.id 
+                    ? 'bg-primary-600 text-white shadow-sm' 
+                    : 'text-dark-muted hover:text-dark hover:bg-surface-50'
+                }`}
+              >
+                <span className="opacity-70 scale-90">{group.icon}</span>
+                {group.label}
+              </button>
+            ))}
           </div>
         </div>
-        
-        <div className="flex items-center gap-3">
+
+        {/* Center: Title block */}
+        <div className="flex items-center justify-center gap-2">
+          <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center text-red-600 shadow-sm border border-red-50/50">
+            <Wallet size={16} />
+          </div>
+          <h1 className="text-lg font-black text-dark tracking-tight leading-none">Dépenses</h1>
+        </div>
+
+        {/* Right: Actions */}
+        <div className="flex items-center justify-end gap-2">
           <div className="relative group">
-            <Button variant="secondary" icon={<Download size={18} />}>
+            <Button variant="secondary" size="sm" icon={<Download size={16} />}>
               Exporter
-              <ChevronRight size={14} className="ml-1 transition-transform group-hover:rotate-90" />
             </Button>
-            <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-surface-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden transform origin-top-right scale-95 group-hover:scale-100">
-              <div className="p-2 space-y-1">
-                <button onClick={exportCSV} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-50 transition-colors group/item text-left">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 group-hover/item:bg-emerald-600 group-hover/item:text-white transition-all">
-                    <Download size={18} />
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-surface-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden transform origin-top-right scale-95 group-hover:scale-100">
+              <div className="p-1.5 space-y-0.5">
+                <button onClick={exportCSV} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-emerald-50 transition-colors group/item text-left">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 group-hover/item:bg-emerald-600 group-hover/item:text-white transition-all">
+                    <Download size={14} />
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-dark">Exporter CSV</p>
-                    <p className="text-[10px] text-dark-muted font-medium">Fichier Excel</p>
-                  </div>
+                  <p className="text-xs font-bold text-dark">CSV</p>
                 </button>
-                <button onClick={exportPDF} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 transition-colors group/item text-left">
-                  <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center text-red-600 group-hover/item:bg-red-600 group-hover/item:text-white transition-all">
-                    <Download size={18} />
+                <button onClick={exportPDF} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-red-50 transition-colors group/item text-left">
+                  <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center text-red-600 group-hover/item:bg-red-600 group-hover/item:text-white transition-all">
+                    <Download size={14} />
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-dark">Exporter PDF</p>
-                    <p className="text-[10px] text-dark-muted font-medium">Pour impression</p>
-                  </div>
+                  <p className="text-xs font-bold text-dark">PDF</p>
                 </button>
               </div>
             </div>
@@ -367,74 +381,53 @@ export default function ExpensesPage() {
               setForm({ ...form, group_name: activeGroup, subcategory: currentGroup.variable[0] });
               setShowAddModal(true);
             }} 
-            icon={<Plus size={18} />} 
-            className="shadow-lg shadow-red-500/20 !bg-red-600"
+            size="sm"
+            icon={<Plus size={16} />} 
+            className="shadow-lg shadow-red-500/10 !bg-red-600"
           >
             Nouvelle Dépense
           </Button>
         </div>
       </div>
 
-      {/* Group Navigation Tabs */}
-      <div className="flex flex-wrap gap-2 p-1.5 bg-white border border-surface-200 rounded-2xl w-fit shadow-sm">
-        {EXPENSE_GROUPS.map(group => (
-          <button
-            key={group.id}
-            onClick={() => { setActiveGroup(group.id); setCurrentPage(1); }}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all ${
-              activeGroup === group.id 
-                ? 'bg-primary-600 text-white shadow-md' 
-                : 'text-dark-muted hover:text-dark hover:bg-surface-50'
-            }`}
-          >
-            {group.icon}
-            {group.label}
-          </button>
-        ))}
-      </div>
-
       {/* Sub Tabs: History vs Settings */}
-      <div className="flex items-center gap-8 border-b border-surface-200">
+      <div className="flex items-center gap-6 border-b border-surface-200">
         <button 
           onClick={() => setActiveTab('History')}
-          className={`pb-4 text-sm font-black uppercase tracking-wider transition-all relative ${activeTab === 'History' ? 'text-primary-600' : 'text-dark-muted hover:text-dark'}`}
+          className={`pb-2.5 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider transition-all relative ${activeTab === 'History' ? 'text-primary-600' : 'text-dark-muted hover:text-dark'}`}
         >
+          <History size={14} className={activeTab === 'History' ? 'text-primary-500' : 'text-dark-muted'} />
           Journal des dépenses
-          {activeTab === 'History' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary-600 rounded-full" />}
+          {activeTab === 'History' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 rounded-full" />}
         </button>
         <button 
           onClick={() => setActiveTab('Settings')}
-          className={`pb-4 text-sm font-black uppercase tracking-wider transition-all relative ${activeTab === 'Settings' ? 'text-primary-600' : 'text-dark-muted hover:text-dark'}`}
+          className={`pb-2.5 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider transition-all relative ${activeTab === 'Settings' ? 'text-primary-600' : 'text-dark-muted hover:text-dark'}`}
         >
+          <Settings size={14} className={activeTab === 'Settings' ? 'text-primary-500' : 'text-dark-muted'} />
           Configuration Dépenses Fixes
-          {activeTab === 'Settings' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary-600 rounded-full" />}
+          {activeTab === 'Settings' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 rounded-full" />}
         </button>
       </div>
 
       {activeTab === 'History' ? (
-        <div className="space-y-6">
-          {error && (
-            <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center gap-3 text-amber-800 text-sm font-bold animate-fadeIn">
-              <AlertCircle size={20} />
-              {error}
-              <button onClick={load} className="ml-auto underline decoration-2 underline-offset-4 hover:text-amber-900 transition-colors">Réessayer</button>
-            </div>
-          )}
-
+        <div className="space-y-4">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <StatCard 
               title={`Total ${activeGroup}`} 
               value={loading ? null : formatCurrency(groupStats.total)} 
               loading={loading}
               color="danger"
               gradient
+              size="sm"
             />
             <StatCard 
               title="Fixes (Ce mois)" 
               value={loading ? null : formatCurrency(groupStats.fixed)} 
               loading={loading}
               color="primary"
+              size="sm"
               icon={<Calendar className="w-full h-full" />}
             />
             <StatCard 
@@ -442,61 +435,38 @@ export default function ExpensesPage() {
               value={loading ? null : formatCurrency(groupStats.variable)} 
               loading={loading}
               color="warning"
+              size="sm"
               icon={<Wallet className="w-full h-full" />}
             />
           </div>
 
-          {/* New Breakdown Section */}
-          <Card padding="none" className="overflow-hidden">
-            <div className="bg-surface-50/50 px-6 py-4 border-b border-surface-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600">
-                  <PieChart size={20} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-dark uppercase tracking-tight">Répartition des Dépenses</h3>
-                  <p className="text-[10px] text-dark-muted font-bold uppercase tracking-wider">Analyse par groupe d'activité</p>
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6">
-              {EXPENSE_GROUPS.map(group => {
-                const groupTotal = allGroupBreakdown[group.id] || 0;
-                const totalAll = allGroupBreakdown.total || 1;
-                const percentage = (groupTotal / totalAll) * 100;
-                const groupColors = {
-                  blue: 'bg-blue-500',
-                  orange: 'bg-orange-500',
-                  purple: 'bg-purple-500'
-                };
-                return (
-                  <div key={group.id} className="group bg-white p-5 rounded-[2rem] border border-surface-100 shadow-soft hover:shadow-xl transition-all">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white ${groupColors[group.color]}`}>
-                        {group.icon}
-                      </div>
-                      <span className="text-sm font-black text-dark">
-                        {loading ? <div className="w-16 h-4 bg-surface-100 animate-pulse rounded" /> : formatCurrency(groupTotal)}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {EXPENSE_GROUPS.map(group => {
+              const groupTotal = allGroupBreakdown[group.id] || 0;
+              const totalAll = allGroupBreakdown.total || 1;
+              const percentage = (groupTotal / totalAll) * 100;
+              const groupColors = { blue: 'bg-blue-500', orange: 'bg-orange-500', purple: 'bg-purple-500' };
+              return (
+                <div key={group.id} className="bg-white px-3 py-2 rounded-xl border border-surface-200 shadow-sm flex items-center gap-3">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white flex-shrink-0 ${groupColors[group.color]}`}>
+                    <span className="scale-75">{group.icon}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-black text-dark truncate uppercase tracking-tight">{group.label}</span>
+                      <span className="text-[10px] font-black text-dark">
+                        {loading ? <div className="w-10 h-2 bg-surface-100 animate-pulse rounded" /> : formatCurrency(groupTotal)}
                       </span>
                     </div>
-                    <h3 className="text-sm font-bold text-dark truncate mb-3">{group.label}</h3>
-                    <div className="space-y-2">
-                      <div className="w-full h-2 bg-surface-50 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full ${groupColors[group.color]} rounded-full transition-all duration-1000`} 
-                          style={{ width: loading ? '0%' : `${percentage}%` }} 
-                        />
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] font-black text-dark-muted uppercase tracking-widest">
-                        <span>Part du budget</span>
-                        <span>{loading ? '0%' : `${Math.round(percentage)}%`}</span>
-                      </div>
+                    <div className="w-full h-1 bg-surface-50 rounded-full overflow-hidden relative">
+                      <div className={`h-full ${groupColors[group.color]} rounded-full transition-all duration-1000`} style={{ width: loading ? '0%' : `${percentage}%` }} />
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </Card>
+                  <span className="text-[9px] font-black text-dark-muted min-w-[20px] text-right">{loading ? '—' : `${Math.round(percentage)}%`}</span>
+                </div>
+              );
+            })}
+          </div>
 
           {/* Filters Bar */}
           <div className="flex flex-wrap items-center gap-3 bg-white p-2 rounded-2xl border border-surface-200 shadow-sm">
@@ -535,39 +505,39 @@ export default function ExpensesPage() {
                   <thead className="bg-surface-50 border-b border-surface-200">
                     <tr>
                       {['Date', 'Type', 'Détails', 'Ref', 'Montant', 'Actions'].map(h => (
-                        <th key={h} className="text-left text-[11px] font-black text-dark-muted uppercase tracking-wider px-6 py-4">{h}</th>
+                        <th key={h} className="text-left text-[10px] font-black text-dark-muted uppercase tracking-wider px-5 py-3">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-100">
                     {currentExpenses.map((exp) => (
                       <tr key={exp.id} className="hover:bg-surface-50 transition-colors group">
-                        <td className="px-6 py-4 text-sm font-bold text-dark">{formatDate(exp.date)}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-5 py-2.5 text-xs font-bold text-dark">{formatDate(exp.date)}</td>
+                        <td className="px-5 py-2.5">
                           <Badge variant={exp.expense_type === 'Fixed' ? 'primary' : 'warning'}>
-                            {exp.expense_type === 'Fixed' ? 'Fixe' : 'Variable'}
+                            {exp.expense_type === 'Fixed' ? 'Fixe' : 'Var'}
                           </Badge>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-5 py-2.5">
                           <div className="flex flex-col">
-                            <span className="text-sm font-black text-dark">{exp.subcategory}</span>
-                            <span className="text-xs text-dark-muted truncate max-w-xs">{exp.notes || '—'}</span>
+                            <span className="text-xs font-black text-dark">{exp.subcategory}</span>
+                            <span className="text-[10px] text-dark-muted truncate max-w-[200px]">{exp.notes || '—'}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="text-[10px] font-black text-primary-600 uppercase bg-primary-50 px-2 py-1 rounded-md border border-primary-100">
+                        <td className="px-5 py-2.5">
+                          <span className="text-[9px] font-black text-primary-600 uppercase bg-primary-50 px-1.5 py-0.5 rounded border border-primary-100">
                             {exp.reference || '—'}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm font-black text-red-600">-{formatCurrency(exp.amount)}</span>
+                        <td className="px-5 py-2.5">
+                          <span className="text-xs font-black text-red-600">-{formatCurrency(exp.amount)}</span>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-5 py-2.5">
                           <button 
                             onClick={() => handleDelete(exp)} 
-                            className="p-2 rounded-xl text-dark-muted hover:bg-red-50 hover:text-red-600 transition-all opacity-0 group-hover:opacity-100"
+                            className="p-1.5 rounded-lg text-dark-muted hover:bg-red-50 hover:text-red-600 transition-all opacity-0 group-hover:opacity-100"
                           >
-                            <Trash2 size={18} />
+                            <Trash2 size={16} />
                           </button>
                         </td>
                       </tr>
@@ -594,7 +564,8 @@ export default function ExpensesPage() {
             <Button 
               icon={<Plus size={18} />} 
               onClick={() => {
-                setRecurringForm({ ...recurringForm, group_name: activeGroup, subcategory: currentGroup.fixed[0] });
+                const firstFixed = currentGroup.fixed[0] || '';
+                setRecurringForm({ group_name: activeGroup, subcategory: firstFixed, amount: '', notes: '' });
                 setShowRecurringModal(true);
               }}
               className="!bg-primary-600"
