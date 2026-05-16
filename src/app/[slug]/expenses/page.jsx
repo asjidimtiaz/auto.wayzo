@@ -574,26 +574,26 @@ export default function ExpensesPage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {filteredRecurring.map(item => (
-              <div key={item.id} className="bg-white rounded-2xl p-5 border border-surface-200 shadow-soft hover:shadow-xl hover:border-primary-100 transition-all transform hover:-translate-y-1 group relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1.5 h-full bg-primary-600" />
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary-50 text-primary-600">
+              <div key={item.id} className="bg-white rounded-xl p-3.5 border border-surface-200 shadow-soft hover:shadow-xl hover:border-primary-100 transition-all transform hover:-translate-y-1 group relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-primary-600" />
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary-50 text-primary-600">
                     {currentGroup.icon}
                   </div>
                   <button onClick={() => handleDeleteRecurring(item)} className="p-2 text-dark-muted hover:text-red-600 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
                     <Trash2 size={16} />
                   </button>
                 </div>
-                <h4 className="font-black text-dark text-base mb-0.5">{item.subcategory}</h4>
-                <div className="text-xl font-black text-primary-600 mb-4">{formatCurrency(item.amount)}</div>
-                <div className="space-y-3">
-                   <div className="flex items-center gap-2 text-[10px] font-black text-dark-muted uppercase tracking-widest">
+                <h4 className="font-black text-dark text-sm mb-0">{item.subcategory}</h4>
+                <div className="text-lg font-black text-primary-600 mb-3">{formatCurrency(item.amount)}</div>
+                <div className="space-y-2">
+                   <div className="flex items-center gap-1.5 text-[9px] font-black text-dark-muted uppercase tracking-wider">
                      <Calendar size={14} className="text-primary-400" />
                      Prochaine: {new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('fr-FR', { month: 'long' })}
                    </div>
-                   {item.notes && <p className="text-[11px] text-dark-muted bg-surface-50 p-2.5 rounded-lg border border-surface-100 italic">"{item.notes}"</p>}
+                   {item.notes && <p className="text-[10px] text-dark-muted bg-surface-50 p-1.5 rounded-lg border border-surface-100 italic">"{item.notes}"</p>}
                 </div>
               </div>
             ))}
