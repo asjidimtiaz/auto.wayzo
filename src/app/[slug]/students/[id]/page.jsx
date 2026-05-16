@@ -705,6 +705,7 @@ export default function StudentDetailPage() {
                           <div>
                             <span className="text-sm font-bold text-accent-green">{formatCurrency(p.amount)}</span>
                             <span className="text-xs text-dark-muted ml-2">{p.payment_method}</span>
+                            {p.reference && <span className="text-[10px] font-black text-primary-600 uppercase bg-primary-50 px-2 py-0.5 rounded ml-2 border border-primary-100">{p.reference}</span>}
                             {p.notes && <p className="text-xs text-dark-muted">{p.notes}</p>}
                           </div>
                         </div>

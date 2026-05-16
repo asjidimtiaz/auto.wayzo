@@ -294,7 +294,7 @@ export default function PaymentsPage() {
             <table className="w-full">
               <thead className="bg-surface-50 border-b border-surface-200">
                 <tr>
-                  {['Étudiant', 'Montant', 'Mode de paiement', 'Date', 'Notes', ''].map(h => (
+                  {['Étudiant', 'Montant', 'Mode de paiement', 'Date', 'Facture', 'Notes', ''].map(h => (
                     <th key={h} className="text-left text-xs font-semibold text-dark-muted uppercase tracking-wider px-4 py-3">{h}</th>
                   ))}
                 </tr>
@@ -317,6 +317,9 @@ export default function PaymentsPage() {
                       <Badge variant="info">{METHOD_LABEL[p.payment_method] || p.payment_method}</Badge>
                     </td>
                     <td className="px-4 py-3 text-sm text-dark-muted">{formatDate(p.payment_date)}</td>
+                    <td className="px-4 py-3">
+                      <span className="text-[10px] font-black text-primary-600 uppercase bg-primary-50 px-2 py-1 rounded-md border border-primary-100">{p.reference || '—'}</span>
+                    </td>
                     <td className="px-4 py-3 text-sm text-dark-muted">{p.notes || '—'}</td>
                     <td className="px-4 py-3">
                       <button onClick={() => handleDelete(p)} className="p-1.5 rounded-lg hover:bg-accent-red/10 text-dark-muted hover:text-accent-red transition-colors">

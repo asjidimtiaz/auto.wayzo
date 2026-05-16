@@ -322,6 +322,7 @@ async function initDb() {
       expense_type VARCHAR(50) DEFAULT 'Variable',
       amount DECIMAL(10,2) NOT NULL,
       date DATE NOT NULL DEFAULT CURRENT_DATE,
+      reference VARCHAR(100),
       notes TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
@@ -347,6 +348,9 @@ async function initDb() {
       END IF;
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'expenses' AND column_name = 'expense_type') THEN
         ALTER TABLE expenses ADD COLUMN expense_type VARCHAR(50) DEFAULT 'Variable';
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'expenses' AND column_name = 'reference') THEN
+        ALTER TABLE expenses ADD COLUMN reference VARCHAR(100);
       END IF;
     END $$
   `);
@@ -789,14 +793,20 @@ async function createPayment(autoEcoleId, data) {
 }
 
 async function getPaymentsByStudent(studentId, autoEcoleId) {
-  return query('SELECT * FROM payments WHERE student_id = $1 AND auto_ecole_id = $2 ORDER BY payment_date DESC', [studentId, autoEcoleId]);
+  return query(`
+    SELECT p.*, i.invoice_number as reference FROM payments p
+    LEFT JOIN invoices i ON i.payment_id = p.id
+    WHERE p.student_id = $1 AND p.auto_ecole_id = $2
+    ORDER BY p.payment_date DESC
+  `, [studentId, autoEcoleId]);
 }
 
 async function getAllPayments(autoEcoleId, { limit = null, offset = 0 } = {}) {
   const limitClause = limit ? `LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}` : '';
   return query(`
-    SELECT p.*, s.full_name, s.cin FROM payments p
+    SELECT p.*, s.full_name, s.cin, i.invoice_number as reference FROM payments p
     JOIN students s ON p.student_id = s.id
+    LEFT JOIN invoices i ON i.payment_id = p.id
     WHERE p.auto_ecole_id = $1
     ORDER BY p.payment_date DESC
     ${limitClause}
@@ -1416,10 +1426,10 @@ async function getAllExpenses(tenantId) {
 }
 
 async function createExpense(tenantId, data) {
-  const { category, subcategory, amount, date, notes, group_name, expense_type } = data;
+  const { category, subcategory, amount, date, notes, group_name, expense_type, reference } = data;
   return queryOne(
-    'INSERT INTO expenses (tenant_id, category, subcategory, amount, date, notes, group_name, expense_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-    [tenantId, category, subcategory, amount, date || new Date(), notes, group_name, expense_type || 'Variable']
+    'INSERT INTO expenses (tenant_id, category, subcategory, amount, date, notes, group_name, expense_type, reference) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+    [tenantId, category, subcategory, amount, date || new Date(), notes, group_name, expense_type || 'Variable', reference || null]
   );
 }
 
@@ -1463,8 +1473,8 @@ async function checkAndGenerateMonthlyExpenses(autoEcoleId) {
       await withTransaction(async (client) => {
         // 1. Create the expense record
         await client.query(
-          'INSERT INTO expenses (tenant_id, category, subcategory, group_name, expense_type, amount, date, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-          [autoEcoleId, 'fixed', item.subcategory, item.group_name, 'Fixed', item.amount, new Date(), `Généré automatiquement - ${item.notes || ''}`]
+          'INSERT INTO expenses (tenant_id, category, subcategory, group_name, expense_type, amount, date, reference, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+          [autoEcoleId, 'fixed', item.subcategory, item.group_name, 'Fixed', item.amount, new Date(), `AUTO-${currentMonth}`, `Généré automatiquement - ${item.notes || ''}`]
         );
         // 2. Update the template
         await client.query(
