@@ -538,14 +538,26 @@ export default function ExpensesPage() {
                         <td className="px-5 py-2.5">
                           <div className="flex flex-col">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-xs font-black text-dark">{exp.subcategory}</span>
+                              <span className="text-[13px] font-black text-dark">{exp.subcategory}</span>
                               {exp.vehicle_plate && (
                                 <span className="text-[9px] font-black text-orange-600 bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded uppercase">
                                   {exp.vehicle_plate}
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] text-dark-muted truncate max-w-[200px]">{exp.notes || '—'}</span>
+                            {/* Staff, landlord, or custom details shown clearly and prominently */}
+                            {['Employée', 'Moniteur pratique', 'Moniteur théorique', 'Loyer'].includes(exp.subcategory) && exp.notes ? (
+                              <div className="mt-1 text-xs font-black text-primary-700 bg-primary-50/50 border border-primary-100/40 px-2.5 py-1 rounded-lg w-fit flex items-center gap-1.5 animate-fadeIn">
+                                <span>👤</span>
+                                {exp.notes.replace(/^Généré automatiquement - /, '')}
+                              </div>
+                            ) : (
+                              exp.notes && (
+                                <span className="text-[11px] font-bold text-dark-muted mt-0.5">
+                                  {exp.notes}
+                                </span>
+                              )
+                            )}
                           </div>
                         </td>
                         <td className="px-5 py-2.5">
@@ -624,7 +636,18 @@ export default function ExpensesPage() {
                      <Calendar size={14} className="text-primary-400" />
                      Prochaine: {new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('fr-FR', { month: 'long' })}
                    </div>
-                   {item.notes && <p className="text-[10px] text-dark-muted bg-surface-50 p-1.5 rounded-lg border border-surface-100 italic">"{item.notes}"</p>}
+                   {item.notes && (
+                     ['Employée', 'Moniteur pratique', 'Moniteur théorique', 'Loyer'].includes(item.subcategory) ? (
+                       <div className="text-xs font-black text-primary-700 bg-primary-50 border border-primary-100/50 px-2 py-1.5 rounded-xl flex items-center gap-1.5 mt-2 animate-fadeIn w-fit">
+                         <span>👤</span>
+                         <span className="truncate">{item.notes}</span>
+                       </div>
+                     ) : (
+                       <p className="text-[11px] font-black text-dark bg-surface-50 p-2 rounded-xl border border-surface-100 mt-2">
+                         {item.notes}
+                       </p>
+                     )
+                   )}
                 </div>
               </div>
             ))}
