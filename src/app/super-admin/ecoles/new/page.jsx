@@ -7,7 +7,7 @@ import { useNotification } from '@/lib/notification';
 const INITIAL_FORM = {
   name: '', slug: '', address: '', phone: '', gsm: '', email: '', fax: '', city: '',
   tax_register: '', commercial_register: '', tp: '', cnss: '', ice: '', capital: '',
-  web_reference: '', adminUsername: '', adminPassword: '',
+  web_reference: '', adminUsername: '',
 };
 
 function slugify(s) {
@@ -26,6 +26,7 @@ export default function NewEcolePage() {
   const [slugManual, setSlugManual] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState('');
+  const [createdInvite, setCreatedInvite] = useState(null);
 
   function updateField(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -91,15 +92,19 @@ export default function NewEcolePage() {
           tax_register: form.tax_register, commercial_register: form.commercial_register,
           tp: form.tp, cnss: form.cnss, ice: form.ice, capital: form.capital,
           web_reference: form.web_reference, logo: logoPath,
-          adminUsername: form.adminUsername, adminPassword: form.adminPassword,
+          adminUsername: form.adminUsername,
         }),
       });
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || "Erreur lors de la creation de l'auto-ecole");
       }
       notify.success('Auto-ecole creee avec succes');
-      router.push('/super-admin/ecoles');
+      if (data.setupUrl) {
+        setCreatedInvite({ username: form.adminUsername, setupUrl: data.setupUrl });
+      } else {
+        router.push('/super-admin/ecoles');
+      }
     } catch (err) {
       console.error('Error creating ecole:', err);
       setServerError(err.message);
@@ -131,6 +136,32 @@ export default function NewEcolePage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <p className="text-sm text-red-700">{serverError}</p>
+        </div>
+      )}
+
+      {createdInvite && (
+        <div className="mb-6 bg-blue-50 border border-blue-100 rounded-xl p-4">
+          <p className="text-sm font-semibold text-blue-900">Lien de creation pour {createdInvite.username}</p>
+          <p className="mt-2 text-xs text-blue-700 break-all">{createdInvite.setupUrl}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                await navigator.clipboard?.writeText(createdInvite.setupUrl);
+                notify.success('Lien copie');
+              }}
+              className="px-3 py-2 text-sm font-medium text-blue-700 bg-white rounded-lg border border-blue-200 hover:bg-blue-50"
+            >
+              Copier le lien
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push('/super-admin/ecoles')}
+              className="px-3 py-2 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-700"
+            >
+              Retour a la liste
+            </button>
+          </div>
         </div>
       )}
 
@@ -283,7 +314,7 @@ export default function NewEcolePage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Nom d'utilisateur <span className="text-red-500">*</span></label>
               <input type="text" value={form.adminUsername} onChange={(e) => updateField('adminUsername', e.target.value)} placeholder="admin" className={inputClass('adminUsername')} />
               {errors.adminUsername && <p className="mt-1 text-xs text-red-600">{errors.adminUsername}</p>}
-              <p className="mt-2 text-[10px] text-gray-400 italic">Le mot de passe par défaut sera : nom_d_utilisateur123</p>
+              <p className="mt-2 text-[10px] text-gray-400 italic">Un lien sera genere pour que l'utilisateur choisisse son nom et son mot de passe.</p>
             </div>
           </div>
         </div>

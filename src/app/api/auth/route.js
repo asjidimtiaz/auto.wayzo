@@ -27,16 +27,16 @@ export async function POST(req) {
     }
 
     const user = await getAdminByUsername(username);
-    console.log('Login attempt:', { username, receivedPassword: password });
-    if (user) {
-      const match = await bcrypt.compare(password, user.password);
-      console.log('User found, match:', match);
-    } else {
-      console.log('User not found');
-    }
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return NextResponse.json({ error: 'Identifiants invalides' }, { status: 401 });
+    }
+
+    if (user.setup_token_hash && !user.setup_completed_at) {
+      return NextResponse.json(
+        { error: 'Veuillez terminer la creation de votre compte avec le lien d invitation.' },
+        { status: 403 }
+      );
     }
 
     const token = generateToken(user);
@@ -45,6 +45,7 @@ export async function POST(req) {
       user: {
         id: user.id,
         username: user.username,
+        full_name: user.full_name || null,
         role: user.role || 'admin',
         auto_ecole_id: user.auto_ecole_id || null,
         slug: user.slug || null,
@@ -75,6 +76,7 @@ export async function GET(req) {
       user: {
         id: user.id,
         username: user.username,
+        full_name: user.full_name || null,
         role: user.role || 'admin',
         auto_ecole_id: user.auto_ecole_id || null,
         slug: user.slug || null,

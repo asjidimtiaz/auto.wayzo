@@ -35,12 +35,14 @@ export async function POST(req) {
     const ae = await db.createAutoEcole(data);
     await db.createSettingsForAutoEcole(ae.id, { school_name: data.name });
 
+    let setupUrl = null;
     if (data.adminUsername) {
-      const password = data.adminPassword || `${data.adminUsername}123`;
-      await db.createTenantAdmin(ae.id, data.adminUsername, password);
+      const result = await db.createTenantAdmin(ae.id, String(data.adminUsername).trim(), null, { invite: true });
+      const origin = req.headers.get('origin') || new URL(req.url).origin;
+      setupUrl = `${origin}/${data.slug}/setup?token=${encodeURIComponent(result.setupToken)}`;
     }
 
-    return NextResponse.json({ success: true, id: ae.id });
+    return NextResponse.json({ success: true, id: ae.id, setupUrl });
   } catch (err) {
     console.error(err);
     if (err.code === '23505') return NextResponse.json({ error: 'Ce slug est deja utilise' }, { status: 409 });

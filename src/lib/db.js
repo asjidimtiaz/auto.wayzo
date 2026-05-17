@@ -1,5 +1,6 @@
 const { Pool, types } = require('pg');
 const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
 // Parse dates as strings (not JS Date objects)
 types.setTypeParser(1082, (val) => val);
@@ -122,6 +123,10 @@ async function initDbInternal() {
       id SERIAL PRIMARY KEY,
       username VARCHAR(255) UNIQUE NOT NULL,
       password VARCHAR(255) NOT NULL,
+      full_name VARCHAR(255),
+      setup_token_hash VARCHAR(255),
+      setup_token_expires_at TIMESTAMP,
+      setup_completed_at TIMESTAMP,
       role VARCHAR(50) DEFAULT 'admin',
       auto_ecole_id INT REFERENCES auto_ecoles(id) ON DELETE CASCADE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -135,6 +140,18 @@ async function initDbInternal() {
       END IF;
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'admins' AND column_name = 'auto_ecole_id') THEN
         ALTER TABLE admins ADD COLUMN auto_ecole_id INT REFERENCES auto_ecoles(id) ON DELETE CASCADE;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'admins' AND column_name = 'full_name') THEN
+        ALTER TABLE admins ADD COLUMN full_name VARCHAR(255);
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'admins' AND column_name = 'setup_token_hash') THEN
+        ALTER TABLE admins ADD COLUMN setup_token_hash VARCHAR(255);
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'admins' AND column_name = 'setup_token_expires_at') THEN
+        ALTER TABLE admins ADD COLUMN setup_token_expires_at TIMESTAMP;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'admins' AND column_name = 'setup_completed_at') THEN
+        ALTER TABLE admins ADD COLUMN setup_completed_at TIMESTAMP;
       END IF;
     END $$
   `);
@@ -583,22 +600,56 @@ async function deleteAutoEcole(id) {
 // ─── ADMINS ─────────────────────────────────────────────────────────────────
 
 async function getAdminsByAutoEcole(autoEcoleId) {
-  return query('SELECT id, username, role, auto_ecole_id, created_at FROM admins WHERE auto_ecole_id = $1', [autoEcoleId]);
+  return query(`
+    SELECT id, username, full_name, role, auto_ecole_id, created_at,
+      setup_completed_at,
+      setup_token_expires_at,
+      CASE
+        WHEN setup_completed_at IS NOT NULL THEN 'active'
+        WHEN setup_token_expires_at IS NOT NULL AND setup_token_expires_at < NOW() THEN 'expired'
+        WHEN setup_token_hash IS NOT NULL THEN 'pending'
+        ELSE 'active'
+      END as setup_status
+    FROM admins
+    WHERE auto_ecole_id = $1
+    ORDER BY created_at DESC, id DESC
+  `, [autoEcoleId]);
 }
 
-async function createTenantAdmin(autoEcoleId, username, password) {
+function hashSetupToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+async function createTenantAdmin(autoEcoleId, username, password, options = {}) {
   const bcrypt = require('bcryptjs');
-  const hash = await bcrypt.hash(password, 10);
+  const rawToken = options.setupToken || crypto.randomBytes(32).toString('hex');
+  const hash = await bcrypt.hash(password || crypto.randomBytes(24).toString('hex'), 10);
   const row = await queryOne(
-    'INSERT INTO admins (username, password, role, auto_ecole_id) VALUES ($1, $2, $3, $4) RETURNING id',
-    [username, hash, 'admin', autoEcoleId]
+    `INSERT INTO admins (
+      username, password, full_name, setup_token_hash, setup_token_expires_at,
+      setup_completed_at, role, auto_ecole_id
+    )
+    VALUES ($1, $2, $3, $4, NOW() + INTERVAL '7 days', $5, $6, $7)
+    RETURNING id, setup_token_expires_at`,
+    [
+      username,
+      hash,
+      options.fullName || null,
+      options.invite ? hashSetupToken(rawToken) : null,
+      options.invite ? null : new Date(),
+      'admin',
+      autoEcoleId
+    ]
   );
-  return { id: row.id };
+  return { id: row.id, setupToken: options.invite ? rawToken : null, setupTokenExpiresAt: row.setup_token_expires_at };
 }
 
 async function updateTenantAdminPassword(id, password) {
   const bcrypt = require('bcryptjs');
-  return execute('UPDATE admins SET password = $1 WHERE id = $2', [await bcrypt.hash(password, 10), id]);
+  return execute(
+    'UPDATE admins SET password = $1, setup_token_hash = NULL, setup_token_expires_at = NULL, setup_completed_at = COALESCE(setup_completed_at, NOW()) WHERE id = $2',
+    [await bcrypt.hash(password, 10), id]
+  );
 }
 
 async function deleteTenantAdmin(id) {
@@ -612,6 +663,38 @@ async function getAdminByUsername(username) {
     LEFT JOIN auto_ecoles ae ON a.auto_ecole_id = ae.id
     WHERE a.username = $1
   `, [username]);
+}
+
+async function getAdminBySetupToken(token) {
+  return queryOne(`
+    SELECT a.id, a.username, a.full_name, a.role, a.auto_ecole_id, a.setup_token_expires_at,
+      a.setup_completed_at, ae.slug, ae.name as auto_ecole_name
+    FROM admins a
+    LEFT JOIN auto_ecoles ae ON a.auto_ecole_id = ae.id
+    WHERE a.setup_token_hash = $1
+      AND a.role = 'admin'
+      AND a.setup_completed_at IS NULL
+      AND a.setup_token_expires_at > NOW()
+  `, [hashSetupToken(token)]);
+}
+
+async function completeTenantAdminSetup(token, fullName, password) {
+  const bcrypt = require('bcryptjs');
+  const user = await getAdminBySetupToken(token);
+  if (!user) return null;
+
+  await execute(
+    `UPDATE admins
+     SET full_name = $1,
+         password = $2,
+         setup_completed_at = NOW(),
+         setup_token_hash = NULL,
+         setup_token_expires_at = NULL
+     WHERE id = $3`,
+    [fullName, await bcrypt.hash(password, 10), user.id]
+  );
+
+  return { ...user, full_name: fullName, setup_completed_at: new Date() };
 }
 
 // ─── STUDENTS ───────────────────────────────────────────────────────────────
@@ -1551,6 +1634,7 @@ module.exports = {
   getAdminByUsername,
   getAllAutoEcoles, getAutoEcoleById, getAutoEcoleBySlug, createAutoEcole, updateAutoEcole, deleteAutoEcole,
   getAdminsByAutoEcole, createTenantAdmin, updateTenantAdminPassword, deleteTenantAdmin,
+  getAdminBySetupToken, completeTenantAdminSetup,
   createSettingsForAutoEcole, getSuperAdminDashboardStats,
   getAllStudents, getStudentById, createStudent, updateStudent, updateStudentImage, deleteStudent,
   markLicenseObtained, updateStudentFollowUp,

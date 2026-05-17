@@ -47,14 +47,10 @@ export default function EditEcolePage() {
   // Admins state
   const [admins, setAdmins] = useState([]);
   const [showAddAdmin, setShowAddAdmin] = useState(false);
-  const [newAdmin, setNewAdmin] = useState({ username: '', password: '' });
+  const [newAdmin, setNewAdmin] = useState({ username: '' });
+  const [latestInvite, setLatestInvite] = useState(null);
   const [adminErrors, setAdminErrors] = useState({});
   const [addingAdmin, setAddingAdmin] = useState(false);
-
-  // Reset password state
-  const [resetAdminId, setResetAdminId] = useState(null);
-  const [resetPassword, setResetPassword] = useState('');
-  const [resettingPassword, setResettingPassword] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -184,14 +180,15 @@ export default function EditEcolePage() {
       const res = await fetch('/api/super-admin/admins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ autoEcoleId: Number(id), username: newAdmin.username, password: newAdmin.password }),
+        body: JSON.stringify({ autoEcoleId: Number(id), username: newAdmin.username }),
       });
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || 'Erreur');
       }
-      notify.success('Administrateur ajoute');
-      setNewAdmin({ username: '', password: '' });
+      notify.success('Administrateur ajoute. Lien de creation genere.');
+      setLatestInvite({ username: newAdmin.username, setupUrl: data.setupUrl });
+      setNewAdmin({ username: '' });
       setAdminErrors({});
       setShowAddAdmin(false);
       const adminsRes = await fetch(`/api/super-admin/admins?autoEcoleId=${id}`);
@@ -408,7 +405,7 @@ export default function EditEcolePage() {
             Administrateurs
           </h2>
           <button
-            onClick={() => { setShowAddAdmin(!showAddAdmin); setNewAdmin({ username: '', password: '' }); setAdminErrors({}); }}
+            onClick={() => { setShowAddAdmin(!showAddAdmin); setNewAdmin({ username: '' }); setAdminErrors({}); }}
             className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary-500 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -430,11 +427,11 @@ export default function EditEcolePage() {
                   className={`w-full h-9 px-3 text-sm border rounded-lg bg-white focus:ring-2 focus:ring-primary-500/20 ${adminErrors.username ? 'border-red-300' : 'border-gray-300 focus:border-primary-500'}`}
                 />
                 {adminErrors.username && <p className="mt-1 text-xs text-red-600">{adminErrors.username}</p>}
-                <p className="mt-2 text-[10px] text-gray-400 italic">Le mot de passe par défaut sera : nom_d_utilisateur123</p>
+                <p className="mt-2 text-[10px] text-gray-400 italic">Un lien sera genere pour que l'utilisateur choisisse son nom et son mot de passe.</p>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-4">
-              <button type="button" onClick={() => { setShowAddAdmin(false); setNewAdmin({ username: '', password: '' }); setAdminErrors({}); }} className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button type="button" onClick={() => { setShowAddAdmin(false); setNewAdmin({ username: '' }); setAdminErrors({}); }} className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
                 Annuler
               </button>
               <button type="submit" disabled={addingAdmin} className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-700 disabled:opacity-50">
@@ -442,6 +439,27 @@ export default function EditEcolePage() {
               </button>
             </div>
           </form>
+        )}
+
+        {latestInvite && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-blue-900">Lien de creation pour {latestInvite.username}</p>
+                <p className="mt-1 text-xs text-blue-700 break-all">{latestInvite.setupUrl}</p>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  await navigator.clipboard?.writeText(latestInvite.setupUrl);
+                  notify.success('Lien copie');
+                }}
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 bg-white rounded-lg border border-blue-200 hover:bg-blue-50"
+              >
+                Copier
+              </button>
+            </div>
+          </div>
         )}
 
         {admins.length > 0 ? (
@@ -453,11 +471,20 @@ export default function EditEcolePage() {
                     <svg className="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-dark">{admin.username}</p>
-                    <p className="text-xs text-gray-400">Administrateur</p>
+                    <p className="text-sm font-medium text-dark">{admin.full_name || admin.username}</p>
+                    <p className="text-xs text-gray-400">{admin.username} · Administrateur</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <span className={`px-2 py-1 text-[10px] font-bold rounded-full ${
+                    admin.setup_status === 'pending'
+                      ? 'bg-amber-50 text-amber-700'
+                      : admin.setup_status === 'expired'
+                        ? 'bg-red-50 text-red-700'
+                        : 'bg-emerald-50 text-emerald-700'
+                  }`}>
+                    {admin.setup_status === 'pending' ? 'En attente' : admin.setup_status === 'expired' ? 'Expire' : 'Actif'}
+                  </span>
                   <button onClick={() => handleDeleteAdmin(admin)} className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 hover:bg-red-50" title="Supprimer">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>

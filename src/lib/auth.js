@@ -12,6 +12,7 @@ function generateToken(user) {
     {
       id: user.id,
       username: user.username,
+      full_name: user.full_name || null,
       role: user.role || 'admin',
       auto_ecole_id: user.auto_ecole_id || null,
       slug: user.slug || null,

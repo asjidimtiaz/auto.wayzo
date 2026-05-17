@@ -196,7 +196,7 @@ function Sidebar({ slug, onSchoolInfoLoaded, collapsed, setCollapsed }) {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-white truncate">{user?.username || 'Admin'}</p>
+                <p className="text-sm font-bold text-white truncate">{user?.full_name || user?.username || 'Admin'}</p>
                 <p className="text-xs text-blue-100 font-medium">Administrateur</p>
             </div>
             <button
