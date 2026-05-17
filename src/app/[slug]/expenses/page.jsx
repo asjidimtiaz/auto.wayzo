@@ -46,7 +46,6 @@ export default function ExpensesPage() {
   const { confirmDelete } = useConfirm();
   const [expenses, setExpenses] = useState([]);
   const [recurring, setRecurring] = useState([]);
-  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeGroup, setActiveGroup] = useState('Administration');
@@ -66,6 +65,8 @@ export default function ExpensesPage() {
     group_name: 'Administration',
     expense_type: 'Variable',
     subcategory: 'Électricité',
+    custom_subcategory: '',
+    vehicle_plate: '',
     amount: '',
     date: today(),
     reference: '',
@@ -75,6 +76,7 @@ export default function ExpensesPage() {
   const [recurringForm, setRecurringForm] = useState({
     group_name: 'Administration',
     subcategory: 'Loyer',
+    vehicle_plate: '',
     amount: '',
     notes: ''
   });
@@ -95,16 +97,12 @@ export default function ExpensesPage() {
     }, 8000);
 
     try {
-      api.expenses.recurring.check().catch(() => {});
-      
-      const [data, rec, s] = await Promise.all([
+      const [data, rec] = await Promise.all([
         api.expenses.getAll().catch(() => []),
-        api.expenses.recurring.getAll().catch(() => []),
-        api.expenses.getStats().catch(() => null)
+        api.expenses.recurring.getAll().catch(() => [])
       ]);
       setExpenses(Array.isArray(data) ? data : []);
       setRecurring(Array.isArray(rec) ? rec : []);
-      setStats(s);
     } catch (err) {
       notify.error('Erreur de chargement');
       setError('Impossible de récupérer les données.');
@@ -216,13 +214,21 @@ export default function ExpensesPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.expenses.create({ ...form, category: form.expense_type.toLowerCase() });
+      const isOther = form.subcategory === 'Autres dépenses';
+      const submitData = {
+        ...form,
+        subcategory: isOther ? (form.custom_subcategory || 'Autres dépenses') : form.subcategory,
+        category: form.expense_type.toLowerCase()
+      };
+      await api.expenses.create(submitData);
       notify.success('Dépense enregistrée');
       setShowAddModal(false);
       setForm({
         group_name: activeGroup,
         expense_type: 'Variable',
         subcategory: EXPENSE_GROUPS.find(g => g.id === activeGroup)?.variable[0] || '',
+        custom_subcategory: '',
+        vehicle_plate: '',
         amount: '',
         date: today(),
         reference: '',
@@ -238,11 +244,9 @@ export default function ExpensesPage() {
     setSaving(true);
     try {
       await api.expenses.recurring.create(recurringForm);
-      // Immediately trigger check to generate journal entry for the current month if missing
-      await api.expenses.recurring.check(); 
       notify.success('Dépense fixe configurée et activée');
       setShowRecurringModal(false);
-      setRecurringForm({ group_name: activeGroup, subcategory: currentGroup.fixed[0], amount: '', notes: '' });
+      setRecurringForm({ group_name: activeGroup, subcategory: currentGroup.fixed[0], vehicle_plate: '', amount: '', notes: '' });
       await load();
     } catch { notify.error('Erreur lors de la configuration'); }
     finally { setSaving(false); }
@@ -378,7 +382,12 @@ export default function ExpensesPage() {
 
           <Button 
             onClick={() => {
-              setForm({ ...form, group_name: activeGroup, subcategory: currentGroup.variable[0] });
+              setForm({ 
+                ...form, 
+                group_name: activeGroup, 
+                subcategory: currentGroup.variable[0],
+                custom_subcategory: ''
+              });
               setShowAddModal(true);
             }} 
             size="sm"
@@ -391,23 +400,31 @@ export default function ExpensesPage() {
       </div>
 
       {/* Sub Tabs: History vs Settings */}
-      <div className="flex items-center gap-6 border-b border-surface-200">
-        <button 
-          onClick={() => setActiveTab('History')}
-          className={`pb-2.5 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider transition-all relative ${activeTab === 'History' ? 'text-primary-600' : 'text-dark-muted hover:text-dark'}`}
-        >
-          <History size={14} className={activeTab === 'History' ? 'text-primary-500' : 'text-dark-muted'} />
-          Journal des dépenses
-          {activeTab === 'History' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 rounded-full" />}
-        </button>
-        <button 
-          onClick={() => setActiveTab('Settings')}
-          className={`pb-2.5 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider transition-all relative ${activeTab === 'Settings' ? 'text-primary-600' : 'text-dark-muted hover:text-dark'}`}
-        >
-          <Settings size={14} className={activeTab === 'Settings' ? 'text-primary-500' : 'text-dark-muted'} />
-          Configuration Dépenses Fixes
-          {activeTab === 'Settings' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 rounded-full" />}
-        </button>
+      <div className="flex justify-start border-b border-surface-100 pb-2">
+        <div className="flex items-center gap-1 p-1 bg-white border border-surface-200 rounded-xl shadow-sm">
+          <button 
+            onClick={() => setActiveTab('History')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[11px] font-black transition-all ${
+              activeTab === 'History' 
+                ? 'bg-primary-600 text-white shadow-sm' 
+                : 'text-dark-muted hover:text-dark hover:bg-surface-50'
+            }`}
+          >
+            <History size={14} />
+            Journal des dépenses
+          </button>
+          <button 
+            onClick={() => setActiveTab('Settings')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[11px] font-black transition-all ${
+              activeTab === 'Settings' 
+                ? 'bg-primary-600 text-white shadow-sm' 
+                : 'text-dark-muted hover:text-dark hover:bg-surface-50'
+            }`}
+          >
+            <Settings size={14} />
+            Configuration Dépenses Fixes
+          </button>
+        </div>
       </div>
 
       {activeTab === 'History' ? (
@@ -520,7 +537,14 @@ export default function ExpensesPage() {
                         </td>
                         <td className="px-5 py-2.5">
                           <div className="flex flex-col">
-                            <span className="text-xs font-black text-dark">{exp.subcategory}</span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-xs font-black text-dark">{exp.subcategory}</span>
+                              {exp.vehicle_plate && (
+                                <span className="text-[9px] font-black text-orange-600 bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded uppercase">
+                                  {exp.vehicle_plate}
+                                </span>
+                              )}
+                            </div>
                             <span className="text-[10px] text-dark-muted truncate max-w-[200px]">{exp.notes || '—'}</span>
                           </div>
                         </td>
@@ -565,7 +589,7 @@ export default function ExpensesPage() {
               icon={<Plus size={18} />} 
               onClick={() => {
                 const firstFixed = currentGroup.fixed[0] || '';
-                setRecurringForm({ group_name: activeGroup, subcategory: firstFixed, amount: '', notes: '' });
+                setRecurringForm({ group_name: activeGroup, subcategory: firstFixed, vehicle_plate: '', amount: '', notes: '' });
                 setShowRecurringModal(true);
               }}
               className="!bg-primary-600"
@@ -586,7 +610,14 @@ export default function ExpensesPage() {
                     <Trash2 size={16} />
                   </button>
                 </div>
-                <h4 className="font-black text-dark text-sm mb-0">{item.subcategory}</h4>
+                <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                  <h4 className="font-black text-dark text-sm mb-0">{item.subcategory}</h4>
+                  {item.vehicle_plate && (
+                    <span className="text-[8px] font-black text-orange-600 bg-orange-50 border border-orange-100 px-1 py-0.5 rounded uppercase">
+                      {item.vehicle_plate}
+                    </span>
+                  )}
+                </div>
                 <div className="text-lg font-black text-primary-600 mb-3">{formatCurrency(item.amount)}</div>
                 <div className="space-y-2">
                    <div className="flex items-center gap-1.5 text-[9px] font-black text-dark-muted uppercase tracking-wider">
@@ -627,12 +658,25 @@ export default function ExpensesPage() {
                     <label className="form-label">Groupe *</label>
                     <select 
                       value={form.group_name} 
-                      onChange={e => setForm({ ...form, group_name: e.target.value, subcategory: EXPENSE_GROUPS.find(g => g.id === e.target.value).variable[0] })}
+                      onChange={e => setForm({ ...form, group_name: e.target.value, subcategory: EXPENSE_GROUPS.find(g => g.id === e.target.value).variable[0], vehicle_plate: '' })}
                       className="form-select w-full"
                     >
                       {EXPENSE_GROUPS.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
                     </select>
                   </div>
+                  {(form.group_name === 'Voiture' || form.group_name === 'Moto') && (
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="form-label">Plaque d'immatriculation / N° Véhicule *</label>
+                      <input 
+                        type="text" 
+                        required 
+                        value={form.vehicle_plate || ''} 
+                        onChange={e => setForm({ ...form, vehicle_plate: e.target.value })} 
+                        className="form-input w-full font-bold border-orange-200 focus:border-orange-500 focus:ring-orange-500/20 animate-fadeIn" 
+                        placeholder="Ex: 12345-A-66" 
+                      />
+                    </div>
+                  )}
                   <div className="space-y-1.5">
                     <label className="form-label">Sous-catégorie *</label>
                     <select 
@@ -643,22 +687,41 @@ export default function ExpensesPage() {
                       {EXPENSE_GROUPS.find(g => g.id === form.group_name)?.variable.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
+                  {form.subcategory === 'Autres dépenses' && (
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="form-label">Nom de la dépense *</label>
+                      <input 
+                        type="text" 
+                        required 
+                        value={form.custom_subcategory} 
+                        onChange={e => setForm({ ...form, custom_subcategory: e.target.value })} 
+                        className="form-input w-full font-bold border-red-200 focus:border-red-500 focus:ring-red-500/20" 
+                        placeholder="Ex: Achat café, Fournitures de bureau..." 
+                      />
+                    </div>
+                  )}
                   <div className="space-y-1.5">
-                    <label className="form-label">Montant (MAD) *</label>
+                    <label className="form-label">
+                      {form.subcategory === 'Autres dépenses' ? 'Prix (MAD) *' : 'Montant (MAD) *'}
+                    </label>
                     <input type="number" step="0.01" required value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="form-input w-full font-black text-red-600 text-lg" placeholder="0.00" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="form-label">Date *</label>
                     <input type="date" required value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="form-input w-full" />
                   </div>
-                  <div className="md:col-span-2 space-y-1.5">
-                    <label className="form-label">Référence (N° Facture/Reçu)</label>
-                    <input type="text" value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} className="form-input w-full font-bold" placeholder="Ex: FAC-2026-001" />
-                  </div>
-                  <div className="md:col-span-2 space-y-1.5">
-                    <label className="form-label">Notes / Justification</label>
-                    <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="form-textarea w-full h-24 resize-none" placeholder="Détails de la dépense..." />
-                  </div>
+                  {form.subcategory !== 'Autres dépenses' && (
+                    <>
+                      <div className="md:col-span-2 space-y-1.5">
+                        <label className="form-label">Référence (N° Facture/Reçu)</label>
+                        <input type="text" value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} className="form-input w-full font-bold" placeholder="Ex: FAC-2026-001" />
+                      </div>
+                      <div className="md:col-span-2 space-y-1.5">
+                        <label className="form-label">Notes / Justification</label>
+                        <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="form-textarea w-full h-24 resize-none" placeholder="Détails de la dépense..." />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -688,12 +751,25 @@ export default function ExpensesPage() {
                     <label className="form-label">Groupe *</label>
                     <select 
                       value={recurringForm.group_name} 
-                      onChange={e => setRecurringForm({ ...recurringForm, group_name: e.target.value, subcategory: EXPENSE_GROUPS.find(g => g.id === e.target.value).fixed[0] })}
+                      onChange={e => setRecurringForm({ ...recurringForm, group_name: e.target.value, subcategory: EXPENSE_GROUPS.find(g => g.id === e.target.value).fixed[0], vehicle_plate: '' })}
                       className="form-select w-full"
                     >
                       {EXPENSE_GROUPS.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
                     </select>
                   </div>
+                  {(recurringForm.group_name === 'Voiture' || recurringForm.group_name === 'Moto') && (
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="form-label">Plaque d'immatriculation / N° Véhicule *</label>
+                      <input 
+                        type="text" 
+                        required 
+                        value={recurringForm.vehicle_plate || ''} 
+                        onChange={e => setRecurringForm({ ...recurringForm, vehicle_plate: e.target.value })} 
+                        className="form-input w-full font-bold border-orange-200 focus:border-orange-500 focus:ring-orange-500/20 animate-fadeIn" 
+                        placeholder="Ex: 12345-A-66" 
+                      />
+                    </div>
+                  )}
                   <div className="space-y-1.5">
                     <label className="form-label">Type de dépense *</label>
                     <select 
@@ -708,9 +784,24 @@ export default function ExpensesPage() {
                     <label className="form-label">Montant Mensuel (MAD) *</label>
                     <input type="number" step="0.01" required value={recurringForm.amount} onChange={e => setRecurringForm({ ...recurringForm, amount: e.target.value })} className="form-input w-full font-black text-primary-600 text-lg" placeholder="0.00" />
                   </div>
-                  <div className="md:col-span-2 space-y-1.5">
-                    <label className="form-label">Nom / Détails (Optionnel)</label>
-                    <input type="text" value={recurringForm.notes} onChange={e => setRecurringForm({ ...recurringForm, notes: e.target.value })} className="form-input w-full" placeholder="Ex: Mme. Fatima (Salaire), Immeuble X (Loyer)..." />
+                   <div className="md:col-span-2 space-y-1.5">
+                    <label className="form-label">
+                      {recurringForm.subcategory === 'Employée' ? "Nom de l'employé(e) *" :
+                       (recurringForm.subcategory === 'Moniteur pratique' || recurringForm.subcategory === 'Moniteur théorique') ? "Nom du moniteur *" :
+                       "Nom / Détails (Optionnel)"}
+                    </label>
+                    <input 
+                      type="text" 
+                      required={['Employée', 'Moniteur pratique', 'Moniteur théorique'].includes(recurringForm.subcategory)}
+                      value={recurringForm.notes} 
+                      onChange={e => setRecurringForm({ ...recurringForm, notes: e.target.value })} 
+                      className={`form-input w-full font-bold ${['Employée', 'Moniteur pratique', 'Moniteur théorique'].includes(recurringForm.subcategory) ? 'border-primary-200 focus:border-primary-500 focus:ring-primary-500/20' : ''}`}
+                      placeholder={
+                        recurringForm.subcategory === 'Employée' ? "Ex: Mme. Fatima, M. Ahmed..." :
+                        (recurringForm.subcategory === 'Moniteur pratique' || recurringForm.subcategory === 'Moniteur théorique') ? "Ex: M. Rachid, M. Youssef..." :
+                        "Ex: Immeuble X (Loyer), Agence Y..."
+                      } 
+                    />
                   </div>
                 </div>
 

@@ -8,6 +8,8 @@ types.setTypeParser(1184, (val) => val);
 types.setTypeParser(1700, (val) => parseFloat(val));
 
 let pool = null;
+let initPromise = null;
+let initComplete = false;
 
 function getPool() {
   if (pool) return pool;
@@ -88,6 +90,20 @@ async function withTransaction(fn) {
 // ─── DB INIT ────────────────────────────────────────────────────────────────
 
 async function initDb() {
+  if (initComplete) return;
+  if (!initPromise) {
+    initPromise = initDbInternal()
+      .then(() => {
+        initComplete = true;
+      })
+      .finally(() => {
+        initPromise = null;
+      });
+  }
+  return initPromise;
+}
+
+async function initDbInternal() {
   const p = getPool();
 
   await p.query(`
@@ -351,6 +367,12 @@ async function initDb() {
       END IF;
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'expenses' AND column_name = 'reference') THEN
         ALTER TABLE expenses ADD COLUMN reference VARCHAR(100);
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'expenses' AND column_name = 'vehicle_plate') THEN
+        ALTER TABLE expenses ADD COLUMN vehicle_plate VARCHAR(100);
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'recurring_expenses' AND column_name = 'vehicle_plate') THEN
+        ALTER TABLE recurring_expenses ADD COLUMN vehicle_plate VARCHAR(100);
       END IF;
     END $$
   `);
@@ -1426,10 +1448,10 @@ async function getAllExpenses(tenantId) {
 }
 
 async function createExpense(tenantId, data) {
-  const { category, subcategory, amount, date, notes, group_name, expense_type, reference } = data;
+  const { category, subcategory, amount, date, notes, group_name, expense_type, reference, vehicle_plate } = data;
   return queryOne(
-    'INSERT INTO expenses (tenant_id, category, subcategory, amount, date, notes, group_name, expense_type, reference) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-    [tenantId, category, subcategory, amount, date || new Date(), notes, group_name, expense_type || 'Variable', reference || null]
+    'INSERT INTO expenses (tenant_id, category, subcategory, amount, date, notes, group_name, expense_type, reference, vehicle_plate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+    [tenantId, category, subcategory, amount, date || new Date(), notes, group_name, expense_type || 'Variable', reference || null, vehicle_plate || null]
   );
 }
 
@@ -1444,18 +1466,30 @@ async function getRecurringExpenses(autoEcoleId) {
 }
 
 async function createRecurringExpense(autoEcoleId, data) {
-  const { group_name, subcategory, amount, notes } = data;
-  return queryOne(
-    'INSERT INTO recurring_expenses (auto_ecole_id, group_name, subcategory, amount, notes) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-    [autoEcoleId, group_name, subcategory, amount, notes]
-  );
+  const { group_name, subcategory, amount, notes, vehicle_plate } = data;
+  const currentMonth = new Date().toISOString().substring(0, 7);
+  const today = new Date().toISOString().split('T')[0];
+
+  return withTransaction(async (client) => {
+    const recurringResult = await client.query(
+      'INSERT INTO recurring_expenses (auto_ecole_id, group_name, subcategory, amount, notes, last_generated_month, vehicle_plate) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [autoEcoleId, group_name, subcategory, amount, notes, currentMonth, vehicle_plate || null]
+    );
+
+    await client.query(
+      'INSERT INTO expenses (tenant_id, category, subcategory, group_name, expense_type, amount, date, reference, notes, vehicle_plate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+      [autoEcoleId, 'fixed', subcategory, group_name, 'Fixed', amount, today, `AUTO-${currentMonth}`, `Généré automatiquement - ${notes || ''}`, vehicle_plate || null]
+    );
+
+    return recurringResult.rows[0];
+  });
 }
 
 async function updateRecurringExpense(id, autoEcoleId, data) {
-  const { subcategory, amount, notes } = data;
+  const { subcategory, amount, notes, vehicle_plate } = data;
   return queryOne(
-    'UPDATE recurring_expenses SET subcategory = $1, amount = $2, notes = $3 WHERE id = $4 AND auto_ecole_id = $5 RETURNING *',
-    [subcategory, amount, notes, id, autoEcoleId]
+    'UPDATE recurring_expenses SET subcategory = $1, amount = $2, notes = $3, vehicle_plate = $4 WHERE id = $5 AND auto_ecole_id = $6 RETURNING *',
+    [subcategory, amount, notes, vehicle_plate || null, id, autoEcoleId]
   );
 }
 
@@ -1467,14 +1501,13 @@ async function checkAndGenerateMonthlyExpenses(autoEcoleId) {
   const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
   const recurring = await getRecurringExpenses(autoEcoleId);
   
-  const generatedCount = 0;
   for (const item of recurring) {
     if (item.last_generated_month !== currentMonth) {
       await withTransaction(async (client) => {
         // 1. Create the expense record
         await client.query(
-          'INSERT INTO expenses (tenant_id, category, subcategory, group_name, expense_type, amount, date, reference, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-          [autoEcoleId, 'fixed', item.subcategory, item.group_name, 'Fixed', item.amount, new Date(), `AUTO-${currentMonth}`, `Généré automatiquement - ${item.notes || ''}`]
+          'INSERT INTO expenses (tenant_id, category, subcategory, group_name, expense_type, amount, date, reference, notes, vehicle_plate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+          [autoEcoleId, 'fixed', item.subcategory, item.group_name, 'Fixed', item.amount, new Date(), `AUTO-${currentMonth}`, `Généré automatiquement - ${item.notes || ''}`, item.vehicle_plate || null]
         );
         // 2. Update the template
         await client.query(

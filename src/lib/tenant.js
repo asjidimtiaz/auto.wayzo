@@ -1,6 +1,32 @@
 const { isAuthenticated } = require('./auth');
 const db = require('./db');
 
+const tenantCache = new Map();
+const tenantCacheTtlMs = 5 * 60 * 1000;
+
+async function getCachedAutoEcoleBySlug(slug) {
+  const key = String(slug || '').trim();
+  if (!key) return null;
+
+  const cached = tenantCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.promise || cached.value;
+  }
+
+  const promise = db.getAutoEcoleBySlug(key)
+    .then((value) => {
+      tenantCache.set(key, { value, expiresAt: Date.now() + tenantCacheTtlMs });
+      return value;
+    })
+    .catch((err) => {
+      tenantCache.delete(key);
+      throw err;
+    });
+
+  tenantCache.set(key, { promise, expiresAt: Date.now() + tenantCacheTtlMs });
+  return promise;
+}
+
 function getTenantContext(req) {
   const user = isAuthenticated(req);
   if (!user) return null;
@@ -21,7 +47,7 @@ async function requireTenant(req) {
   if (ctx.isSuperAdmin && !ctx.autoEcoleId) {
     const tenantSlug = req.headers.get('x-tenant-slug');
     if (tenantSlug) {
-      const ae = await db.getAutoEcoleBySlug(tenantSlug);
+      const ae = await getCachedAutoEcoleBySlug(tenantSlug);
       if (ae) {
         ctx.autoEcoleId = ae.id;
         ctx.slug = tenantSlug;
