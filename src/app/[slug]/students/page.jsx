@@ -242,13 +242,13 @@ export default function StudentsPage() {
       <div className="animate-fadeIn space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-primary-100 rounded-2xl flex items-center justify-center text-primary-600 shadow-sm border border-primary-50/50">
-              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-primary-100 rounded-xl flex items-center justify-center text-primary-600 shadow-sm border border-primary-50/50">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
             </div>
             <div>
-              <p className="text-[10px] font-black text-dark-muted uppercase tracking-[0.2em] mb-0.5">Gestion des étudiants de l'auto-école</p>
-              <h1 className="text-3xl font-black text-dark tracking-tight">Étudiants</h1>
+              <p className="text-[11px] font-semibold text-dark-muted mb-0.5">Gestion des étudiants de l'auto-école</p>
+              <h1 className="text-[22px] font-extrabold text-dark tracking-tight leading-none">Étudiants</h1>
             </div>
           </div>
           
