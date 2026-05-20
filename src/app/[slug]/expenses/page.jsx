@@ -56,6 +56,40 @@ export default function ExpensesPage() {
   
   const loadingTimeout = useRef(null);
 
+  // Vehicle plates states
+  const [vehiclePlates, setVehiclePlates] = useState([]);
+  const [showQuickAddPlate, setShowQuickAddPlate] = useState(false);
+  const [showQuickAddPlateRecurring, setShowQuickAddPlateRecurring] = useState(false);
+  const [quickPlate, setQuickPlate] = useState('');
+
+  const handleQuickAddPlate = async (isRecurring = false) => {
+    const trimmed = quickPlate.trim().toUpperCase();
+    if (!trimmed) return;
+    if (vehiclePlates.includes(trimmed)) {
+      notify.error('Cette plaque existe déjà');
+      return;
+    }
+    const updatedPlates = [...vehiclePlates, trimmed];
+    setVehiclePlates(updatedPlates);
+    if (isRecurring) {
+      setRecurringForm(f => ({ ...f, vehicle_plate: trimmed }));
+      setShowQuickAddPlateRecurring(false);
+    } else {
+      setForm(f => ({ ...f, vehicle_plate: trimmed }));
+      setShowQuickAddPlate(false);
+    }
+    setQuickPlate('');
+    try {
+      const currentSettings = await api.settings.get().catch(() => null);
+      if (currentSettings) {
+        await api.settings.update({ ...currentSettings, vehicle_plates: updatedPlates });
+        notify.success('Plaque enregistrée avec succès');
+      }
+    } catch {
+      notify.error('Erreur lors de l\'enregistrement de la plaque');
+    }
+  };
+
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
   const [showRecurringModal, setShowRecurringModal] = useState(false);
@@ -97,12 +131,14 @@ export default function ExpensesPage() {
     }, 8000);
 
     try {
-      const [data, rec] = await Promise.all([
+      const [data, rec, settingsData] = await Promise.all([
         api.expenses.getAll().catch(() => []),
-        api.expenses.recurring.getAll().catch(() => [])
+        api.expenses.recurring.getAll().catch(() => []),
+        api.settings.get().catch(() => null)
       ]);
       setExpenses(Array.isArray(data) ? data : []);
       setRecurring(Array.isArray(rec) ? rec : []);
+      setVehiclePlates(settingsData?.vehicle_plates || []);
     } catch (err) {
       notify.error('Erreur de chargement');
       setError('Impossible de récupérer les données.');
@@ -690,14 +726,57 @@ export default function ExpensesPage() {
                   {(form.group_name === 'Voiture' || form.group_name === 'Moto') && (
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="form-label">Plaque d'immatriculation / N° Véhicule *</label>
-                      <input 
-                        type="text" 
-                        required 
+                      <select 
                         value={form.vehicle_plate || ''} 
-                        onChange={e => setForm({ ...form, vehicle_plate: e.target.value })} 
-                        className="form-input w-full font-bold border-orange-200 focus:border-orange-500 focus:ring-orange-500/20 animate-fadeIn" 
-                        placeholder="Ex: 12345-A-66" 
-                      />
+                        onChange={e => {
+                          if (e.target.value === '__new__') {
+                            setShowQuickAddPlate(true);
+                          } else {
+                            setForm({ ...form, vehicle_plate: e.target.value });
+                          }
+                        }}
+                        className="form-select w-full font-bold border-orange-200 focus:border-orange-500 focus:ring-orange-500/20 animate-fadeIn"
+                        required
+                      >
+                        <option value="" disabled>Sélectionner une plaque...</option>
+                        {vehiclePlates.map(p => <option key={p} value={p}>{p}</option>)}
+                        <option value="__new__" className="text-orange-600 font-bold">+ Enregistrer une nouvelle plaque</option>
+                      </select>
+
+                      {showQuickAddPlate && (
+                        <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-xl space-y-2 animate-fadeIn">
+                          <label className="text-xs font-bold text-orange-800">Ajouter et enregistrer une plaque</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="Ex: 12345-A-66"
+                              value={quickPlate}
+                              onChange={e => setQuickPlate(e.target.value.toUpperCase())}
+                              className="form-input text-sm font-bold uppercase w-full bg-white"
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleQuickAddPlate(false);
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleQuickAddPlate(false)}
+                              className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold rounded-lg transition-colors whitespace-nowrap"
+                            >
+                              Ajouter
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowQuickAddPlate(false)}
+                              className="px-3 py-1.5 bg-surface-200 hover:bg-surface-300 text-dark text-sm rounded-lg transition-colors whitespace-nowrap"
+                            >
+                              Annuler
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                   <div className="space-y-1.5">
@@ -783,14 +862,57 @@ export default function ExpensesPage() {
                   {(recurringForm.group_name === 'Voiture' || recurringForm.group_name === 'Moto') && (
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="form-label">Plaque d'immatriculation / N° Véhicule *</label>
-                      <input 
-                        type="text" 
-                        required 
+                      <select 
                         value={recurringForm.vehicle_plate || ''} 
-                        onChange={e => setRecurringForm({ ...recurringForm, vehicle_plate: e.target.value })} 
-                        className="form-input w-full font-bold border-orange-200 focus:border-orange-500 focus:ring-orange-500/20 animate-fadeIn" 
-                        placeholder="Ex: 12345-A-66" 
-                      />
+                        onChange={e => {
+                          if (e.target.value === '__new__') {
+                            setShowQuickAddPlateRecurring(true);
+                          } else {
+                            setRecurringForm({ ...recurringForm, vehicle_plate: e.target.value });
+                          }
+                        }}
+                        className="form-select w-full font-bold border-orange-200 focus:border-orange-500 focus:ring-orange-500/20 animate-fadeIn"
+                        required
+                      >
+                        <option value="" disabled>Sélectionner une plaque...</option>
+                        {vehiclePlates.map(p => <option key={p} value={p}>{p}</option>)}
+                        <option value="__new__" className="text-orange-600 font-bold">+ Enregistrer une nouvelle plaque</option>
+                      </select>
+
+                      {showQuickAddPlateRecurring && (
+                        <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-xl space-y-2 animate-fadeIn">
+                          <label className="text-xs font-bold text-orange-800">Ajouter et enregistrer une plaque</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="Ex: 12345-A-66"
+                              value={quickPlate}
+                              onChange={e => setQuickPlate(e.target.value.toUpperCase())}
+                              className="form-input text-sm font-bold uppercase w-full bg-white"
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleQuickAddPlate(true);
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleQuickAddPlate(true)}
+                              className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold rounded-lg transition-colors whitespace-nowrap"
+                            >
+                              Ajouter
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowQuickAddPlateRecurring(false)}
+                              className="px-3 py-1.5 bg-surface-200 hover:bg-surface-300 text-dark text-sm rounded-lg transition-colors whitespace-nowrap"
+                            >
+                              Annuler
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                   <div className="space-y-1.5">

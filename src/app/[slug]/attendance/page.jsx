@@ -43,17 +43,24 @@ export default function AttendancePage() {
   }, [loadData]);
 
   const processQrCode = async (qrCode) => {
-    if (loading) return;
+    if (!qrCode || loading) return;
     setLoading(true);
     setResult(null);
     try {
-      const student = students.find(s => s.qr_code === qrCode || s.cin === qrCode);
+      const cleanCode = qrCode.trim().toUpperCase();
+      const student = students.find(s => {
+        const sQr = s.qr_code ? s.qr_code.trim().toUpperCase() : '';
+        const sCin = s.cin ? s.cin.trim().toUpperCase() : '';
+        const sIdFallback = `STU-${s.id}`.toUpperCase();
+        return sQr === cleanCode || sCin === cleanCode || sIdFallback === cleanCode;
+      });
+
       if (!student) {
         setResult({ error: true, message: 'Étudiant non trouvé pour ce code.' });
         return;
       }
       
-      const isPresent = todayList.some(a => a.student_id === student.id && !a.scan_out_time);
+      const isPresent = todayList.some(a => a.student_id === student.id && !a.time_out);
       
       if (isPresent) {
         await api.attendance.scanOut(student.id);
@@ -148,12 +155,17 @@ export default function AttendancePage() {
     };
   }, []);
 
-  const presentIds = useMemo(() => new Set(todayList.filter(a => !a.scan_out_time).map(a => a.student_id)), [todayList]);
+  const presentIds = useMemo(() => new Set(todayList.filter(a => !a.time_out).map(a => a.student_id)), [todayList]);
 
   const filteredStudents = useMemo(() => {
     return students.filter(s => {
       const q = search.toLowerCase();
-      const matchSearch = !q || s.full_name?.toLowerCase().includes(q) || s.cin?.toLowerCase().includes(q) || s.qr_code?.toLowerCase().includes(q);
+      const fallbackQr = `STU-${s.id}`.toLowerCase();
+      const matchSearch = !q || 
+        s.full_name?.toLowerCase().includes(q) || 
+        s.cin?.toLowerCase().includes(q) || 
+        s.qr_code?.toLowerCase().includes(q) || 
+        fallbackQr.includes(q);
       const isPresent = presentIds.has(s.id);
       const matchFilter = filter === 'Tous' || (filter === 'Présents' && isPresent) || (filter === 'Absents' && !isPresent);
       return matchSearch && matchFilter;
@@ -299,19 +311,19 @@ export default function AttendancePage() {
                   {todayList.map((att) => (
                     <div key={att.id} className="flex items-center justify-between group">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${att.scan_out_time ? 'bg-surface-100 text-dark-muted' : 'bg-accent-green/10 text-accent-green'}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${att.time_out ? 'bg-surface-100 text-dark-muted' : 'bg-accent-green/10 text-accent-green'}`}>
                           {att.full_name?.charAt(0)}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-dark">{att.full_name}</p>
                           <p className="text-xs text-dark-muted">
-                            {new Date(att.scan_in_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                            {att.scan_out_time && ` → ${new Date(att.scan_out_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`}
+                            {att.time_in}
+                            {att.time_out && ` → ${att.time_out}`}
                           </p>
                         </div>
                       </div>
-                      <Badge variant={att.scan_out_time ? 'gray' : 'success'}>
-                        {att.scan_out_time ? 'Sorti' : 'Présent'}
+                      <Badge variant={att.time_out ? 'gray' : 'success'}>
+                        {att.time_out ? 'Sorti' : 'Présent'}
                       </Badge>
                     </div>
                   ))}
@@ -365,7 +377,7 @@ export default function AttendancePage() {
                 return (
                   <button
                     key={s.id}
-                    onClick={() => processQrCode(s.qr_code)}
+                    onClick={() => processQrCode(s.qr_code || `STU-${s.id}`)}
                     className={`p-4 rounded-2xl border transition-all text-center group hover:shadow-card ${isPresent ? 'bg-accent-green/5 border-accent-green/20' : 'bg-white border-surface-200 hover:border-primary-500/50'}`}
                   >
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3 text-sm font-bold transition-colors ${isPresent ? 'bg-accent-green text-white' : 'bg-surface-100 text-dark-muted group-hover:bg-primary-500 group-hover:text-white'}`}>

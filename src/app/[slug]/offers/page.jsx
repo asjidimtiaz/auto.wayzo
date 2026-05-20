@@ -7,9 +7,7 @@ import Card from '@/components/Card';
 import Badge from '@/components/Badge';
 import Button from '@/components/Button';
 import EmptyState from '@/components/EmptyState';
-import { formatCurrency } from '@/lib/utils';
-
-const LICENSE_TYPES = ['B', 'A', 'C', 'D', 'BE', 'CE', 'A1', 'AM'];
+import { formatCurrency, LICENSE_TYPES } from '@/lib/utils';
 const FORM_DEFAULT = { name: '', license_type: 'B', price: '', description: '' };
 
 export default function OffersPage() {
@@ -115,7 +113,7 @@ export default function OffersPage() {
                    </div>
                    <div>
                      <label className="form-label">Type de permis *</label>
-                     <select {...F('license_type')} required className="form-select">{LICENSE_TYPES.map(l => <option key={l} value={l}>Permis {l}</option>)}</select>
+                     <select {...F('license_type')} required className="form-select">{LICENSE_TYPES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}</select>
                    </div>
                    <div>
                      <label className="form-label">Prix (MAD) *</label>

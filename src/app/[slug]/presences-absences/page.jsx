@@ -19,9 +19,9 @@ const MOCK_STUDENTS = [
 ];
 
 const MOCK_ATTENDANCE = [
-  { student_id: 'm1', scan_in_time: '2024-05-14T09:00:00' },
-  { student_id: 'm2', scan_in_time: '2024-05-14T09:15:00' },
-  { student_id: 'm3', scan_in_time: '2024-05-14T09:30:00' },
+  { student_id: 'm1', time_in: '09:00' },
+  { student_id: 'm2', time_in: '09:15' },
+  { student_id: 'm3', time_in: '09:30' },
 ];
 
 export default function PresencesAbsencesPage() {
@@ -75,7 +75,7 @@ export default function PresencesAbsencesPage() {
     }
   }, [view]);
 
-  const presentIds = useMemo(() => new Set(todayAttendance.filter(a => !a.scan_out_time).map(a => a.student_id)), [todayAttendance]);
+  const presentIds = useMemo(() => new Set(todayAttendance.filter(a => !a.time_out).map(a => a.student_id)), [todayAttendance]);
 
   const stats = useMemo(() => {
     const total = students.length;

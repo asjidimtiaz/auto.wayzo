@@ -13,7 +13,7 @@ function apiFetch(url, options = {}) {
   // Fallback to URL path if slug not set (useful for first render/refresh)
   if (!slug && typeof window !== 'undefined') {
     const parts = window.location.pathname.split('/');
-    if (parts[1] && parts[1] !== 'super-admin' && parts[1] !== 'api') {
+    if (parts[1] && parts[1] !== 'super-admin' && parts[1] !== 'api' && parts[1] !== 'login') {
       slug = parts[1];
     }
   }

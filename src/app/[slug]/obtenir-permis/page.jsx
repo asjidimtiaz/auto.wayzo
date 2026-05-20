@@ -9,7 +9,7 @@ import Badge from '@/components/Badge';
 import Button from '@/components/Button';
 import StatCard from '@/components/StatCard';
 import Pagination from '@/components/Pagination';
-import { formatDate } from '@/lib/utils';
+import { formatDate, LICENSE_TYPES } from '@/lib/utils';
 
 const MOCK_STUDENTS = [
   { id: 'mock-1', full_name: 'Mohamed El Amrani', cin: 'AB123456', phone: '0612345678', license_obtained: true, license_type: 'B', license_obtained_type: 'B', license_obtained_date: '2024-01-15' },
@@ -134,7 +134,7 @@ export default function ObtenirPermisPage() {
             className="w-full h-12 bg-white rounded-2xl shadow-soft border border-surface-200 pl-11 pr-4 text-sm focus:ring-2 focus:ring-primary-500 appearance-none transition-all cursor-pointer"
           >
             <option value="">Tous les permis</option>
-            {['A', 'B', 'C', 'D'].map(l => <option key={l} value={l}>Permis {l}</option>)}
+            {LICENSE_TYPES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
           </select>
         </div>
       </div>

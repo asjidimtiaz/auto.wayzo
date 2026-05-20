@@ -451,6 +451,7 @@ async function initDbInternal() {
   `);
 
   await p.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS logo TEXT');
+  await p.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS vehicle_plates TEXT DEFAULT \'[]\'');
 
   await p.query(`
     DO $$ BEGIN
@@ -1356,22 +1357,36 @@ async function deleteOffer(id, autoEcoleId) {
 // ─── SETTINGS ────────────────────────────────────────────────────────────────
 
 async function getSettings(autoEcoleId) {
-  return queryOne('SELECT * FROM settings WHERE auto_ecole_id = $1', [autoEcoleId]);
+  const res = await queryOne('SELECT * FROM settings WHERE auto_ecole_id = $1', [autoEcoleId]);
+  if (res && res.vehicle_plates) {
+    try {
+      res.vehicle_plates = JSON.parse(res.vehicle_plates);
+    } catch (e) {
+      res.vehicle_plates = [];
+    }
+  } else if (res) {
+    res.vehicle_plates = [];
+  }
+  return res;
 }
 
 async function updateSettings(autoEcoleId, data) {
+  const vehiclePlatesStr = Array.isArray(data.vehicle_plates)
+    ? JSON.stringify(data.vehicle_plates)
+    : (typeof data.vehicle_plates === 'string' ? data.vehicle_plates : '[]');
+
   return execute(`
     UPDATE settings SET school_name = $1, address = $2, phone = $3, email = $4,
     default_training_days = $5, license_number = $6, tax_register = $7, commercial_register = $8,
     city = $9, web_reference = $10, fax = $11, logo = $12,
-    gsm = $13, tp = $14, cnss = $15, ice = $16, capital = $17
-    WHERE auto_ecole_id = $18
+    gsm = $13, tp = $14, cnss = $15, ice = $16, capital = $17, vehicle_plates = $18
+    WHERE auto_ecole_id = $19
   `, [
     data.school_name, data.address || null, data.phone || null, data.email || null,
     data.default_training_days || 30, data.license_number || null, data.tax_register || null,
     data.commercial_register || null, data.city || null, data.web_reference || null,
     data.fax || null, data.logo || null, data.gsm || null, data.tp || null,
-    data.cnss || null, data.ice || null, data.capital || null, autoEcoleId,
+    data.cnss || null, data.ice || null, data.capital || null, vehiclePlatesStr, autoEcoleId,
   ]);
 }
 

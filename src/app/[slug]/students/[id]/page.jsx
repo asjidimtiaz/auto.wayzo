@@ -10,7 +10,7 @@ import Badge from '@/components/Badge';
 import Button from '@/components/Button';
 import StatCard from '@/components/StatCard';
 import Pagination from '@/components/Pagination';
-import { formatDate, formatCurrency, formatDuration, today } from '@/lib/utils';
+import { formatDate, formatCurrency, formatDuration, today, LICENSE_TYPES } from '@/lib/utils';
 import { X, FileText, Download, ExternalLink, Printer, Eye } from 'lucide-react';
 
 const TABS = ['Informations', 'Paiements', 'Présences', 'Stages', 'Documents', 'Incidents'];
@@ -832,16 +832,16 @@ export default function StudentDetailPage() {
                    {attendance.slice((pageAtt-1)*itemsPerPage, pageAtt*itemsPerPage).map(a => (
                       <div key={a.id} className="flex items-center justify-between p-3 rounded-xl bg-surface-50 hover:bg-surface-100 transition-colors">
                         <div className="flex items-center gap-3">
-                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${a.scan_out_time ? 'bg-dark-muted' : 'bg-accent-green'}`} />
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${a.time_out ? 'bg-dark-muted' : 'bg-accent-green'}`} />
                           <div>
-                            <span className="text-sm font-medium text-dark">{formatDate(a.date || a.scan_in_time)}</span>
+                            <span className="text-sm font-medium text-dark">{formatDate(a.date)}</span>
                             <p className="text-xs text-dark-muted">
-                              {a.scan_in_time ? new Date(a.scan_in_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
-                              {a.scan_out_time ? ` → ${new Date(a.scan_out_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` : ''}
+                              {a.time_in || ''}
+                              {a.time_out ? ` → ${a.time_out}` : ''}
                             </p>
                           </div>
                         </div>
-                        <Badge variant={a.scan_out_time ? 'gray' : 'success'}>{a.scan_out_time ? 'Sorti' : 'Présent'}</Badge>
+                        <Badge variant={a.time_out ? 'gray' : 'success'}>{a.time_out ? 'Sorti' : 'Présent'}</Badge>
                       </div>
                     ))}
                     <Pagination
@@ -1106,7 +1106,7 @@ export default function StudentDetailPage() {
                   <div>
                     <label className="form-label !text-dark-light">Type de Permis</label>
                     <select value={avancementForm.license_type} onChange={e => setAvancementForm({...avancementForm, license_type: e.target.value})} className="form-select !py-3 !rounded-xl">
-                      {['Permis B (Voiture)', 'Permis A (Moto)', 'Permis C (Poids Lourd)', 'Permis D (Transport)'].map(t => <option key={t} value={t}>{t}</option>)}
+                      {LICENSE_TYPES.map(l => <option key={l.label} value={l.label}>{l.label}</option>)}
                     </select>
                   </div>
                 </div>
@@ -1361,10 +1361,7 @@ export default function StudentDetailPage() {
                   <div className="space-y-1.5">
                     <label className="text-sm font-semibold text-dark-light">Type de Permis</label>
                     <select value={docForm.license_type || 'B'} onChange={(e) => setDocForm({...docForm, license_type: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-surface-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all bg-white appearance-none">
-                      <option value="B">Permis B (Voiture)</option>
-                      <option value="A">Permis A (Moto)</option>
-                      <option value="C">Permis C (Poids Lourd)</option>
-                      <option value="D">Permis D (Transport)</option>
+                      {LICENSE_TYPES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                     </select>
                   </div>
                   <div className="space-y-1.5">

@@ -11,7 +11,8 @@ const secureCookie = process.env.NODE_ENV === 'production';
 export async function POST(req) {
   try {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-    const rl = checkRateLimit(`login:${ip}`, { maxAttempts: 5, windowMs: 900_000 });
+    const maxAttempts = process.env.NODE_ENV === 'production' ? 5 : 50;
+    const rl = checkRateLimit(`login:${ip}`, { maxAttempts, windowMs: 900_000 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: 'Trop de tentatives. Réessayez dans quelques minutes.' },
@@ -26,10 +27,25 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Nom d\'utilisateur et mot de passe requis' }, { status: 400 });
     }
 
+    const rawTenantSlug = req.headers.get('x-tenant-slug');
+    const tenantSlug = rawTenantSlug ? rawTenantSlug.trim().toLowerCase() : null;
+    const isTenantLogin = tenantSlug && tenantSlug !== 'login' && tenantSlug !== 'super-admin';
+
     const user = await getAdminByUsername(username);
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return NextResponse.json({ error: 'Identifiants invalides' }, { status: 401 });
+    }
+
+    // Verify tenant and role isolation
+    if (isTenantLogin) {
+      if (!user.slug || user.slug.trim().toLowerCase() !== tenantSlug) {
+        return NextResponse.json({ error: 'Identifiants invalides' }, { status: 401 });
+      }
+    } else {
+      if (user.role !== 'super_admin') {
+        return NextResponse.json({ error: 'Identifiants invalides' }, { status: 401 });
+      }
     }
 
     if (user.setup_token_hash && !user.setup_completed_at) {

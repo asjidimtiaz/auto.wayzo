@@ -11,9 +11,7 @@ import Badge from '@/components/Badge';
 import Button from '@/components/Button';
 import EmptyState from '@/components/EmptyState';
 import Pagination from '@/components/Pagination';
-import { formatDate, formatCurrency, today } from '@/lib/utils';
-
-const LICENSE_TYPES = ['B', 'A', 'C', 'D', 'BE', 'CE', 'A1', 'AM'];
+import { formatDate, formatCurrency, today, LICENSE_TYPES } from '@/lib/utils';
 const STATUS_TYPES = ['En formation', 'Permis obtenu', 'Inactif'];
 
 const FORM_DEFAULT = {
@@ -542,7 +540,7 @@ export default function StudentsPage() {
                       <div>
                         <label className="form-label text-dark font-bold mb-2">Type de Permis *</label>
                         <select {...F('license_type')} required className="form-select">
-                          {LICENSE_TYPES.map(l => <option key={l} value={l}>Permis {l} {l === 'B' ? '(Voiture)' : ''}</option>)}
+                          {LICENSE_TYPES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                         </select>
                       </div>
                     </div>

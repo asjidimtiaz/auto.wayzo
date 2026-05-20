@@ -4,20 +4,43 @@ import api from '@/lib/api';
 import { useNotification } from '@/lib/notification';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import { Car, Plus, Trash2 } from 'lucide-react';
 
 const FORM_DEFAULT = {
   school_name: '', address: '', phone: '', gsm: '', email: '', fax: '', city: '',
   license_number: '', tax_register: '', commercial_register: '', tp: '', cnss: '', ice: '', capital: '',
-  web_reference: '', default_training_days: 30, logo: '',
+  web_reference: '', default_training_days: 30, logo: '', vehicle_plates: [],
 };
 
 export default function SettingsPage() {
   const notify = useNotification();
   const [form, setForm] = useState(FORM_DEFAULT);
+  const [newPlate, setNewPlate] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [logoPreview, setLogoPreview] = useState(null);
   const fileRef = useRef(null);
+
+  const addPlate = () => {
+    const trimmed = newPlate.trim().toUpperCase();
+    if (!trimmed) return;
+    if (form.vehicle_plates?.includes(trimmed)) {
+      notify.error('Cette plaque existe déjà');
+      return;
+    }
+    setForm(f => ({
+      ...f,
+      vehicle_plates: [...(f.vehicle_plates || []), trimmed]
+    }));
+    setNewPlate('');
+  };
+
+  const removePlate = (plateToRemove) => {
+    setForm(f => ({
+      ...f,
+      vehicle_plates: (f.vehicle_plates || []).filter(p => p !== plateToRemove)
+    }));
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -137,6 +160,63 @@ export default function SettingsPage() {
           <div className="max-w-xs">
             <label className="form-label">Durée par défaut (jours)</label>
             <input type="number" min="1" {...F('default_training_days')} className="form-input" />
+          </div>
+        </Card>
+
+        {/* Parc Automobile (Plaques d'immatriculation) */}
+        <Card className="mb-6">
+          <Card.Header title={
+            <div className="flex items-center gap-2">
+              <span className="text-orange-500">
+                <Car className="w-5 h-5" />
+              </span>
+              <span>Parc Automobile (Plaques d'immatriculation)</span>
+            </div>
+          } />
+          <div className="space-y-4">
+            <p className="text-sm text-dark-muted">
+              Enregistrez les plaques d'immatriculation des véhicules (voitures, motos) de votre auto-école pour pouvoir les sélectionner lors de la saisie des dépenses.
+            </p>
+            <div className="flex gap-2 max-w-md">
+              <input
+                type="text"
+                placeholder="Ex: 12345-A-66"
+                value={newPlate}
+                onChange={e => setNewPlate(e.target.value)}
+                className="form-input font-bold uppercase"
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addPlate();
+                  }
+                }}
+              />
+              <Button type="button" onClick={addPlate} variant="secondary">
+                <Plus className="w-4 h-4 mr-1" /> Ajouter
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2">
+              {(form.vehicle_plates || []).length === 0 ? (
+                <div className="col-span-full py-6 text-center text-sm text-dark-muted border border-dashed border-surface-300 rounded-2xl">
+                  Aucun véhicule enregistré. Ajoutez-en un ci-dessus.
+                </div>
+              ) : (
+                (form.vehicle_plates || []).map(plate => (
+                  <div key={plate} className="flex items-center justify-between p-3 bg-surface-50 border border-surface-200 rounded-xl hover:border-orange-200 transition-all group">
+                    <span className="font-bold text-dark-dark">{plate}</span>
+                    <button
+                      type="button"
+                      onClick={() => removePlate(plate)}
+                      className="p-1.5 text-danger-500 hover:bg-danger-50 rounded-lg opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200"
+                      title="Supprimer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </Card>
 
