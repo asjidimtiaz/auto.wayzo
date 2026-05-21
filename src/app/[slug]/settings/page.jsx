@@ -4,12 +4,13 @@ import api from '@/lib/api';
 import { useNotification } from '@/lib/notification';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import { Car, Plus, Trash2 } from 'lucide-react';
+import { Car, Plus, Trash2, Coins } from 'lucide-react';
 
 const FORM_DEFAULT = {
   school_name: '', address: '', phone: '', gsm: '', email: '', fax: '', city: '',
   license_number: '', tax_register: '', commercial_register: '', tp: '', cnss: '', ice: '', capital: '',
   web_reference: '', default_training_days: 30, logo: '', vehicle_plates: [],
+  license_costs: { A: 0, B: 0, C: 0, D: 0, E: 0 },
 };
 
 export default function SettingsPage() {
@@ -47,7 +48,14 @@ export default function SettingsPage() {
     try {
       const data = await api.settings.get();
       if (data && !data.error) {
-        setForm({ ...FORM_DEFAULT, ...data });
+        setForm({
+          ...FORM_DEFAULT,
+          ...data,
+          license_costs: {
+            ...FORM_DEFAULT.license_costs,
+            ...(data.license_costs || {})
+          }
+        });
         if (data.logo) {
           const b64 = await api.files.getBase64(data.logo).catch(() => null);
           if (b64) setLogoPreview(b64);
@@ -216,6 +224,60 @@ export default function SettingsPage() {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        </Card>
+
+        {/* Frais Fixes de Dossier par Étudiant */}
+        <Card className="mb-6">
+          <Card.Header title={
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-500">
+                <Coins className="w-5 h-5" />
+              </span>
+              <span>Frais de Dossier / Dépenses par Étudiant</span>
+            </div>
+          } />
+          <div className="space-y-4">
+            <p className="text-sm text-dark-muted">
+              Définissez les frais de dossier ou taxes applicables à chaque étudiant en fonction de son type de permis. Ces coûts seront automatiquement déduits du bénéfice net global sur votre tableau de bord (comptabilisés en dépenses variables).
+            </p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+              {[
+                { type: 'A', label: 'Permis A (Moto)' },
+                { type: 'B', label: 'Permis B (Voiture)' },
+                { type: 'C', label: 'Permis C (Camion)' },
+                { type: 'D', label: 'Permis D (Bus)' },
+                { type: 'E', label: 'Permis E' },
+              ].map(({ type, label }) => (
+                <div key={type} className="flex flex-col gap-1.5 p-4 bg-surface-50 border border-surface-200 rounded-2xl hover:border-emerald-200 transition-all duration-200">
+                  <label className="text-xs font-bold text-dark-dark uppercase tracking-wide">{label}</label>
+                  <div className="relative rounded-xl shadow-sm">
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="0.00"
+                      value={form.license_costs?.[type] ?? 0}
+                      onChange={e => {
+                        const val = parseFloat(e.target.value) || 0;
+                        setForm(f => ({
+                          ...f,
+                          license_costs: {
+                            ...(f.license_costs || {}),
+                            [type]: val
+                          }
+                        }));
+                      }}
+                      className="form-input pr-12 font-bold"
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <span className="text-dark-muted text-xs font-bold">MAD</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </Card>

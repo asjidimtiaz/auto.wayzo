@@ -67,6 +67,7 @@ export default function DashboardPage() {
   const [schoolName, setSchoolName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [showProfit, setShowProfit] = useState(false);
 
   async function loadData() {
     try {
@@ -147,10 +148,37 @@ export default function DashboardPage() {
       </div>
 
       {/* Revenue cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Revenus Totaux" value={loading ? null : formatCurrency(stats?.totalRevenue)} loading={loading} color="success" gradient />
-        <StatCard title="Dépenses Totales" value={loading ? null : formatCurrency(stats?.totalExpenses)} loading={loading} color="danger" gradient />
-        <StatCard title="Bénéfice Net" value={loading ? null : formatCurrency(stats?.profit)} loading={loading} color="primary" gradient />
+        <StatCard title="Dépenses Fixes" value={loading ? null : formatCurrency(stats?.fixedExpenses)} loading={loading} color="danger" gradient />
+        <StatCard title="Dépenses Variables" value={loading ? null : formatCurrency(stats?.variableExpenses)} loading={loading} color="warning" gradient />
+        <StatCard
+          title="Bénéfice Net"
+          value={
+            loading ? null : (
+              showProfit ? (
+                <div className="flex items-center justify-between w-full">
+                  <span>{formatCurrency(stats?.profit)}</span>
+                  <svg className="w-5 h-5 opacity-80 shrink-0 ml-2 inline-block cursor-pointer select-none" fill="none" stroke="#ffffff" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                  </svg>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between w-full select-none cursor-pointer">
+                  <span className="blur-sm select-none tracking-widest font-mono font-medium">••• •••,••</span>
+                  <svg className="w-5 h-5 opacity-80 shrink-0 ml-2 inline-block" fill="none" stroke="#ffffff" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                </div>
+              )
+            )
+          }
+          loading={loading}
+          color="primary"
+          gradient
+          onClick={() => setShowProfit(!showProfit)}
+        />
       </div>
 
       {/* Session time cards */}

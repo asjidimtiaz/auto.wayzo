@@ -452,6 +452,7 @@ async function initDbInternal() {
 
   await p.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS logo TEXT');
   await p.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS vehicle_plates TEXT DEFAULT \'[]\'');
+  await p.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS license_costs TEXT DEFAULT \'{"A":0,"B":0,"C":0,"D":0,"E":0}\'');
 
   await p.query(`
     DO $$ BEGIN
@@ -1100,8 +1101,34 @@ async function getStudentSessionTimeStats(studentId, autoEcoleId) {
 
 // ─── ALERTS ──────────────────────────────────────────────────────────────────
 
+function isStageFinished(s, todayStr) {
+  if (s.status !== 'Planifié') return true;
+
+  const dStr = typeof s.scheduled_date === 'string'
+    ? s.scheduled_date
+    : s.scheduled_date instanceof Date
+      ? s.scheduled_date.toISOString().split('T')[0]
+      : '';
+  if (!dStr) return false;
+
+  if (dStr < todayStr) return true;
+  if (dStr > todayStr) return false;
+
+  if (!s.scheduled_time) return false;
+
+  const [hours, minutes] = s.scheduled_time.split(':').map(Number);
+  const scheduledTimeMs = (hours || 0) * 60 * 60 * 1000 + (minutes || 0) * 60 * 1000;
+  const durationMs = (s.duration_minutes || 60) * 60 * 1000;
+
+  const now = new Date();
+  const currentTimeMs = now.getHours() * 60 * 60 * 1000 + now.getMinutes() * 60 * 1000 + now.getSeconds() * 1000;
+
+  return currentTimeMs > (scheduledTimeMs + durationMs);
+}
+
 async function getAllAlerts(autoEcoleId) {
   const alerts = [];
+  const todayStr = new Date().toISOString().split('T')[0];
 
   const overdue = await getOverduePayments(autoEcoleId);
   overdue.forEach((p) => {
@@ -1156,6 +1183,7 @@ async function getAllAlerts(autoEcoleId) {
 
   const upcomingStages = await getUpcomingStages(autoEcoleId, 7);
   upcomingStages.forEach((s) => {
+    if (isStageFinished(s, todayStr)) return;
     const isExam = s.type === 'Examen';
     alerts.push({
       type: isExam ? 'exam_upcoming' : 'session_upcoming',
@@ -1168,6 +1196,7 @@ async function getAllAlerts(autoEcoleId) {
 
   const todayStages = await getTodayStages(autoEcoleId);
   todayStages.forEach((s) => {
+    if (isStageFinished(s, todayStr)) return;
     if (!alerts.find((a) => a.related_id === s.id && a.type.includes('upcoming'))) {
       alerts.push({
         type: 'stage_today', severity: 'success',
@@ -1358,14 +1387,26 @@ async function deleteOffer(id, autoEcoleId) {
 
 async function getSettings(autoEcoleId) {
   const res = await queryOne('SELECT * FROM settings WHERE auto_ecole_id = $1', [autoEcoleId]);
-  if (res && res.vehicle_plates) {
-    try {
-      res.vehicle_plates = JSON.parse(res.vehicle_plates);
-    } catch (e) {
+  if (res) {
+    if (res.vehicle_plates) {
+      try {
+        res.vehicle_plates = JSON.parse(res.vehicle_plates);
+      } catch (e) {
+        res.vehicle_plates = [];
+      }
+    } else {
       res.vehicle_plates = [];
     }
-  } else if (res) {
-    res.vehicle_plates = [];
+    
+    if (res.license_costs) {
+      try {
+        res.license_costs = JSON.parse(res.license_costs);
+      } catch (e) {
+        res.license_costs = { A: 0, B: 0, C: 0, D: 0, E: 0 };
+      }
+    } else {
+      res.license_costs = { A: 0, B: 0, C: 0, D: 0, E: 0 };
+    }
   }
   return res;
 }
@@ -1375,18 +1416,24 @@ async function updateSettings(autoEcoleId, data) {
     ? JSON.stringify(data.vehicle_plates)
     : (typeof data.vehicle_plates === 'string' ? data.vehicle_plates : '[]');
 
+  const licenseCostsStr = data.license_costs
+    ? (typeof data.license_costs === 'string' ? data.license_costs : JSON.stringify(data.license_costs))
+    : '{"A":0,"B":0,"C":0,"D":0,"E":0}';
+
   return execute(`
     UPDATE settings SET school_name = $1, address = $2, phone = $3, email = $4,
     default_training_days = $5, license_number = $6, tax_register = $7, commercial_register = $8,
     city = $9, web_reference = $10, fax = $11, logo = $12,
-    gsm = $13, tp = $14, cnss = $15, ice = $16, capital = $17, vehicle_plates = $18
-    WHERE auto_ecole_id = $19
+    gsm = $13, tp = $14, cnss = $15, ice = $16, capital = $17, vehicle_plates = $18,
+    license_costs = $19
+    WHERE auto_ecole_id = $20
   `, [
     data.school_name, data.address || null, data.phone || null, data.email || null,
     data.default_training_days || 30, data.license_number || null, data.tax_register || null,
     data.commercial_register || null, data.city || null, data.web_reference || null,
     data.fax || null, data.logo || null, data.gsm || null, data.tp || null,
-    data.cnss || null, data.ice || null, data.capital || null, vehiclePlatesStr, autoEcoleId,
+    data.cnss || null, data.ice || null, data.capital || null, vehiclePlatesStr,
+    licenseCostsStr, autoEcoleId,
   ]);
 }
 
@@ -1474,6 +1521,8 @@ async function getDashboardStats(autoEcoleId) {
     revenueRow, monthlyRow, pendingRow,
     reminders, recentStudents, recentPayments,
     totalExpensesRow, monthlyExpensesRow,
+    fixedExpensesRow, variableExpensesRow,
+    settingsRow, studentCountsRow,
   ] = await Promise.all([
     queryOne('SELECT COUNT(*) as count FROM students WHERE auto_ecole_id = $1', [autoEcoleId]),
     queryOne("SELECT COUNT(*) as count FROM students WHERE status = 'En formation' AND auto_ecole_id = $1", [autoEcoleId]),
@@ -1487,6 +1536,10 @@ async function getDashboardStats(autoEcoleId) {
     query('SELECT p.*, s.full_name FROM payments p JOIN students s ON p.student_id = s.id WHERE p.auto_ecole_id = $1 ORDER BY p.created_at DESC LIMIT 5', [autoEcoleId]),
     queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE tenant_id = $1', [autoEcoleId]),
     queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE date >= $1 AND tenant_id = $2', [monthStart, autoEcoleId]),
+    queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE LOWER(expense_type) = 'fixed' AND tenant_id = $1", [autoEcoleId]),
+    queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE (LOWER(expense_type) != 'fixed' OR expense_type IS NULL) AND tenant_id = $1", [autoEcoleId]),
+    queryOne('SELECT license_costs FROM settings WHERE auto_ecole_id = $1', [autoEcoleId]),
+    query('SELECT license_type, COUNT(*) as count FROM students WHERE auto_ecole_id = $1 GROUP BY license_type', [autoEcoleId]),
   ]);
 
   const [alertsCounts, todayStages] = await Promise.all([
@@ -1495,7 +1548,33 @@ async function getDashboardStats(autoEcoleId) {
   ]);
 
   const totalRevenue = parseFloat(revenueRow.total);
-  const totalExpenses = parseFloat(totalExpensesRow.total);
+  let totalExpenses = parseFloat(totalExpensesRow.total);
+  const fixedExpenses = parseFloat(fixedExpensesRow.total);
+  let variableExpenses = parseFloat(variableExpensesRow.total);
+
+  // ── Per-student licence-cost deduction ────────────────────────────────────
+  let licenseCosts = {};
+  if (settingsRow && settingsRow.license_costs) {
+    try {
+      licenseCosts = typeof settingsRow.license_costs === 'string'
+        ? JSON.parse(settingsRow.license_costs)
+        : settingsRow.license_costs;
+    } catch (_) { licenseCosts = {}; }
+  }
+
+  let studentCategoryExpenses = 0;
+  if (Array.isArray(studentCountsRow)) {
+    studentCountsRow.forEach(row => {
+      const licType = (row.license_type || '').toUpperCase().trim();
+      const cost    = parseFloat(licenseCosts[licType] || 0);
+      const count   = parseInt(row.count || 0);
+      studentCategoryExpenses += cost * count;
+    });
+  }
+
+  variableExpenses += studentCategoryExpenses;
+  totalExpenses    += studentCategoryExpenses;
+  // ─────────────────────────────────────────────────────────────────────────
 
   return {
     totalStudents: parseInt(totalRow.count),
@@ -1506,6 +1585,8 @@ async function getDashboardStats(autoEcoleId) {
     monthlyRevenue: parseFloat(monthlyRow.total),
     totalExpenses,
     monthlyExpenses: parseFloat(monthlyExpensesRow.total),
+    fixedExpenses,
+    variableExpenses,
     profit: totalRevenue - totalExpenses,
     pendingPayments: parseInt(pendingRow.count),
     upcomingReminders: reminders,
