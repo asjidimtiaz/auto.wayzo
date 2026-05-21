@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import QRCode from 'qrcode';
 import api from '@/lib/api';
 import { useNotification } from '@/lib/notification';
 import { useConfirm } from '@/lib/confirm';
@@ -77,6 +78,38 @@ export default function StudentDetailPage() {
   const [docLoading, setDocLoading] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState('');
+  const qrValue = useMemo(() => student ? (student.qr_code || `STU-${student.id}`) : '', [student]);
+  const qrImageUrl = useMemo(() => {
+    if (!qrValue) return '';
+    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrValue)}&color=0033cc`;
+  }, [qrValue]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function generateQr() {
+      if (!qrValue) {
+        setQrDataUrl('');
+        return;
+      }
+
+      try {
+        const dataUrl = await QRCode.toDataURL(qrValue, {
+          width: 600,
+          margin: 2,
+          color: { dark: '#0033cc', light: '#ffffff' }
+        });
+        if (!cancelled) setQrDataUrl(dataUrl);
+      } catch (err) {
+        console.error('QR generation failed:', err);
+        if (!cancelled) setQrDataUrl('');
+      }
+    }
+
+    generateQr();
+    return () => { cancelled = true; };
+  }, [qrValue]);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -521,6 +554,75 @@ export default function StudentDetailPage() {
     } catch { notify.error('Erreur de connexion'); }
   }
 
+  async function getQrDataUrl() {
+    if (qrDataUrl) return qrDataUrl;
+    return QRCode.toDataURL(qrValue, {
+      width: 600,
+      margin: 2,
+      color: { dark: '#0033cc', light: '#ffffff' }
+    });
+  }
+
+  function sanitizeFileName(value) {
+    return String(value || 'etudiant').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'etudiant';
+  }
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[char]));
+  }
+
+  async function handleDownloadQrCode() {
+    try {
+      const dataUrl = await getQrDataUrl();
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `qr-code-${sanitizeFileName(student?.full_name)}-${sanitizeFileName(qrValue)}.png`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      notify.success('Code QR téléchargé');
+    } catch (err) {
+      console.error('QR download failed:', err);
+      notify.error('Impossible de télécharger le code QR');
+    }
+  }
+
+  async function handlePrintQrCode() {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      notify.error("Impossible d'ouvrir la fenêtre d'impression");
+      return;
+    }
+
+    try {
+      const dataUrl = await getQrDataUrl();
+      const studentName = escapeHtml(student.full_name);
+      const safeQrValue = escapeHtml(qrValue);
+      printWindow.document.write(`
+        <html>
+          <head><title>QR Code - ${studentName}</title></head>
+          <body style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; text-align:center;">
+            <h2>${studentName}</h2>
+            <img src="${dataUrl}" style="width:300px; height:300px; margin-bottom:20px;" />
+            <p style="font-size:24px; font-weight:bold; letter-spacing:2px;">${safeQrValue}</p>
+            <script>setTimeout(() => { window.print(); setTimeout(() => window.close(), 500); }, 500);</script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    } catch (err) {
+      console.error('QR print failed:', err);
+      printWindow.close();
+      notify.error("Impossible d'imprimer le code QR");
+    }
+  }
+
   if (loading) return (
     <div className="animate-fadeIn space-y-6">
       {/* Header Skeleton */}
@@ -904,30 +1006,19 @@ export default function StudentDetailPage() {
            <Card padding="lg">
               <h3 className="font-semibold text-dark mb-4">Code QR</h3>
               <div className="border border-surface-100 rounded-xl p-6 flex flex-col items-center justify-center mb-4">
-                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${student.qr_code || `STU-${student.id}`}&color=0033cc`} alt="QR Code" className="w-48 h-48 mb-4 mix-blend-multiply" />
+                 <img src={qrDataUrl || qrImageUrl} alt="QR Code" className="w-48 h-48 mb-4 mix-blend-multiply" />
                  <div className="bg-surface-50 w-full text-center py-2 rounded-lg text-xs font-mono font-bold text-dark-muted">
-                    {student.qr_code || `STU-${student.id}`}
+                    {qrValue}
                  </div>
               </div>
-              <Button variant="secondary" className="w-full text-sm" onClick={() => {
-                 const printWindow = window.open('', '_blank');
-                 if (printWindow) {
-                   printWindow.document.write(`
-                     <html>
-                       <head><title>QR Code - ${student.full_name}</title></head>
-                       <body style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; text-align:center;">
-                         <h2>${student.full_name}</h2>
-                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${student.qr_code || `STU-${student.id}`}&color=0033cc" style="width:300px; height:300px; margin-bottom:20px;" />
-                         <p style="font-size:24px; font-weight:bold; letter-spacing:2px;">${student.qr_code || `STU-${student.id}`}</p>
-                         <script>setTimeout(() => { window.print(); setTimeout(() => window.close(), 500); }, 500);</script>
-                       </body>
-                     </html>
-                   `);
-                   printWindow.document.close();
-                 }
-              }} icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>}>
-                 Imprimer QR Code
-              </Button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button variant="secondary" className="w-full text-sm" onClick={handleDownloadQrCode} icon={<Download size={16} />}>
+                   Télécharger
+                </Button>
+                <Button variant="secondary" className="w-full text-sm" onClick={handlePrintQrCode} icon={<Printer size={16} />}>
+                   Imprimer
+                </Button>
+              </div>
            </Card>
 
            {/* Formulaires Administratifs */}
