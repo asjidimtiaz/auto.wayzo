@@ -8,9 +8,10 @@ export async function GET(req) {
   try {
     const ctx = await requireTenant(req);
     if (!ctx) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    await db.checkAndGenerateMonthlyExpenses(ctx.autoEcoleId);
+
     const { searchParams } = new URL(req.url);
     if (searchParams.get('check')) {
-      await db.checkAndGenerateMonthlyExpenses(ctx.autoEcoleId);
       return NextResponse.json({ success: true });
     }
 

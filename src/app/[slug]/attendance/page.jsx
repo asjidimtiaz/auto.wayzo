@@ -12,6 +12,8 @@ export default function AttendancePage() {
   const { slug } = useParams();
   const notify = useNotification();
   const [manualQr, setManualQr] = useState('');
+  const [manualStudentId, setManualStudentId] = useState('');
+  const [manualAction, setManualAction] = useState('present');
   const [result, setResult] = useState(null);
   const [todayList, setTodayList] = useState([]);
   const [students, setStudents] = useState([]);
@@ -52,7 +54,10 @@ export default function AttendancePage() {
         const sQr = s.qr_code ? s.qr_code.trim().toUpperCase() : '';
         const sCin = s.cin ? s.cin.trim().toUpperCase() : '';
         const sIdFallback = `STU-${s.id}`.toUpperCase();
-        return sQr === cleanCode || sCin === cleanCode || sIdFallback === cleanCode;
+        const sId = String(s.id).toUpperCase();
+        return [sQr, sCin, sIdFallback, sId].some(value => (
+          value && (value === cleanCode || cleanCode.includes(value) || value.includes(cleanCode))
+        ));
       });
 
       if (!student) {
@@ -76,6 +81,36 @@ export default function AttendancePage() {
       await loadData();
     } catch (err) {
       setResult({ error: true, message: err.message || 'Erreur lors du scan.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const recordManualAttendance = async () => {
+    if (!manualStudentId || loading) return;
+
+    const student = students.find(s => String(s.id) === String(manualStudentId));
+    if (!student) {
+      setResult({ error: true, message: 'SÃ©lectionnez un Ã©tudiant.' });
+      return;
+    }
+
+    setLoading(true);
+    setResult(null);
+    try {
+      if (manualAction === 'present') {
+        await api.attendance.scanIn(student.id);
+        notify.success(`EntrÃ©e enregistrÃ©e: ${student.full_name}`);
+        setResult({ success: true, action: 'in', student });
+      } else {
+        await api.attendance.scanOut(student.id);
+        notify.success(`Sortie enregistrÃ©e: ${student.full_name}`);
+        setResult({ success: true, action: 'out', student });
+      }
+
+      await loadData();
+    } catch (err) {
+      setResult({ error: true, message: err.message || "Erreur lors de l'enregistrement." });
     } finally {
       setLoading(false);
     }
@@ -269,6 +304,48 @@ export default function AttendancePage() {
                 </div>
               </div>
 
+              <div className="mt-6 rounded-2xl border border-surface-200 bg-surface-50 p-4">
+                <p className="text-sm font-bold text-dark mb-3">Selection manuelle</p>
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
+                  <select
+                    value={manualStudentId}
+                    onChange={(e) => setManualStudentId(e.target.value)}
+                    className="form-select bg-white"
+                  >
+                    <option value="">Choisir un etudiant</option>
+                    {students.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.full_name} {s.cin ? `- ${s.cin}` : ''} {s.qr_code ? `- ${s.qr_code}` : ''}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="flex bg-white border border-surface-200 p-1 rounded-xl">
+                    {[
+                      ['present', 'Present'],
+                      ['absent', 'Absent'],
+                    ].map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setManualAction(value)}
+                        className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${manualAction === value ? 'bg-primary-500 text-white shadow-soft' : 'text-dark-muted hover:text-dark'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <Button
+                  onClick={recordManualAttendance}
+                  disabled={!manualStudentId || loading}
+                  className="!bg-primary-500 shadow-purple mt-3 w-full md:w-auto"
+                >
+                  {loading ? '...' : manualAction === 'present' ? 'Marquer present' : 'Marquer absent'}
+                </Button>
+              </div>
+
               {/* Result Notification */}
               {result && (
                 <div className={`mt-4 p-4 rounded-xl animate-fadeIn ${result.error ? 'bg-accent-red/5 border border-accent-red/20' : 'bg-accent-green/5 border border-accent-green/20'}`}>
@@ -414,4 +491,3 @@ export default function AttendancePage() {
     </div>
   );
 }
-

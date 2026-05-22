@@ -1221,6 +1221,22 @@ async function getAllAlerts(autoEcoleId) {
     });
   });
 
+  // End of month expense reminder (30th of the month, or end of February)
+  const todayDate = new Date();
+  const currentDay = todayDate.getDate();
+  const isFebruary = todayDate.getMonth() === 1;
+  const is30thOrEnd = currentDay === 30 || currentDay === 31 || (isFebruary && (currentDay === 28 || currentDay === 29));
+
+  if (is30thOrEnd) {
+    alerts.push({
+      type: 'expense_reminder',
+      severity: 'warning',
+      title: 'Rappel : Dépenses du mois',
+      message: "C'est la fin du mois. N'oubliez pas de saisir et de finaliser vos dépenses mensuelles.",
+      date: todayStr,
+    });
+  }
+
   const order = { danger: 0, warning: 1, info: 2, success: 3 };
   return alerts.sort((a, b) => {
     const da = typeof a.date === 'string' ? a.date : a.date instanceof Date ? a.date.toISOString().split('T')[0] : '';
@@ -1510,36 +1526,109 @@ async function getStudentIncidentsCount(studentId, autoEcoleId) {
   `, [studentId, autoEcoleId]);
 }
 
+function normalizeLicenseType(type) {
+  if (!type) return 'B';
+  const t = type.toUpperCase().trim();
+  if (t === 'A' || t.includes('PERMIS A') || t.includes('MOTO')) return 'A';
+  if (t === 'B' || t.includes('PERMIS B') || t.includes('VOITURE')) return 'B';
+  if (t === 'C' || t.includes('PERMIS C') || t.includes('CAMION')) return 'C';
+  if (t === 'D' || t.includes('PERMIS D') || t.includes('BUS')) return 'D';
+  if (t === 'E' || t.includes('PERMIS E')) return 'E';
+  
+  const match = t.match(/PERMIS\s+([A-E])/i);
+  if (match) return match[1].toUpperCase();
+
+  if (t.length === 1 && ['A', 'B', 'C', 'D', 'E'].includes(t)) return t;
+  return 'B';
+}
+
 // ─── DASHBOARD ───────────────────────────────────────────────────────────────
 
 async function getDashboardStats(autoEcoleId) {
-  const today = new Date().toISOString().split('T')[0];
-  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+  const todayDate = new Date();
+  
+  // Timezone-safe local date string helper
+  function toLocalStr(d) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  const todayStr = toLocalStr(todayDate);
+
+  // Tomorrow Str (next day start)
+  const tomorrowDate = new Date(todayDate);
+  tomorrowDate.setDate(todayDate.getDate() + 1);
+  const tomorrowStr = toLocalStr(tomorrowDate);
+
+  // Week calculations (Morocco: Monday - Sunday)
+  const currentDay = todayDate.getDay();
+  const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+  const weekStartDate = new Date(todayDate);
+  weekStartDate.setDate(todayDate.getDate() + diffToMonday);
+  const weekStartStr = toLocalStr(weekStartDate);
+
+  const nextWeekStartDate = new Date(weekStartDate);
+  nextWeekStartDate.setDate(weekStartDate.getDate() + 7);
+  const nextWeekStartStr = toLocalStr(nextWeekStartDate);
+
+  const monthStart = toLocalStr(new Date(todayDate.getFullYear(), todayDate.getMonth(), 1));
+  const nextMonthStart = toLocalStr(new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 1));
 
   const [
     totalRow, activeRow, licensesRow, attendanceRow,
-    revenueRow, monthlyRow, pendingRow,
+    // Today
+    todayRevenueRow, todayFixedRow, todayVariableRow, todayStudentCounts,
+    // Week
+    weeklyRevenueRow, weeklyFixedRow, weeklyVariableRow, weeklyStudentCounts,
+    // Month
+    monthlyRevenueRow, monthlyFixedRow, monthlyVariableRow, monthlyStudentCounts,
+    // Total (All Time)
+    revenueRow, fixedExpensesRow, variableExpensesRow, studentCountsRow,
+    totalExpensesRow,
+    
+    // Other stats
+    pendingRow,
     reminders, recentStudents, recentPayments,
-    totalExpensesRow, monthlyExpensesRow,
-    fixedExpensesRow, variableExpensesRow,
-    settingsRow, studentCountsRow,
+    settingsRow,
   ] = await Promise.all([
     queryOne('SELECT COUNT(*) as count FROM students WHERE auto_ecole_id = $1', [autoEcoleId]),
     queryOne("SELECT COUNT(*) as count FROM students WHERE status = 'En formation' AND auto_ecole_id = $1", [autoEcoleId]),
     queryOne('SELECT COUNT(*) as count FROM students WHERE license_obtained = true AND auto_ecole_id = $1', [autoEcoleId]),
-    queryOne('SELECT COUNT(*) as count FROM attendance WHERE date = $1 AND auto_ecole_id = $2', [today, autoEcoleId]),
+    queryOne('SELECT COUNT(*) as count FROM attendance WHERE date = $1 AND auto_ecole_id = $2', [todayStr, autoEcoleId]),
+
+    // Today
+    queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE payment_date = $1 AND auto_ecole_id = $2', [todayStr, autoEcoleId]),
+    queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE LOWER(expense_type) = 'fixed' AND date = $1 AND tenant_id = $2", [todayStr, autoEcoleId]),
+    queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE (LOWER(expense_type) != 'fixed' OR expense_type IS NULL) AND date = $1 AND tenant_id = $2", [todayStr, autoEcoleId]),
+    query('SELECT license_type, COUNT(*) as count FROM students WHERE registration_date = $1 AND auto_ecole_id = $2 GROUP BY license_type', [todayStr, autoEcoleId]),
+
+    // Week
+    queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE payment_date >= $1 AND payment_date < $2 AND auto_ecole_id = $3', [weekStartStr, nextWeekStartStr, autoEcoleId]),
+    queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE LOWER(expense_type) = 'fixed' AND date >= $1 AND date < $2 AND tenant_id = $3", [weekStartStr, nextWeekStartStr, autoEcoleId]),
+    queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE (LOWER(expense_type) != 'fixed' OR expense_type IS NULL) AND date >= $1 AND date < $2 AND tenant_id = $3", [weekStartStr, nextWeekStartStr, autoEcoleId]),
+    query('SELECT license_type, COUNT(*) as count FROM students WHERE registration_date >= $1 AND registration_date < $2 AND auto_ecole_id = $3 GROUP BY license_type', [weekStartStr, nextWeekStartStr, autoEcoleId]),
+
+    // Month
+    queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE payment_date >= $1 AND payment_date < $2 AND auto_ecole_id = $3', [monthStart, nextMonthStart, autoEcoleId]),
+    queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE LOWER(expense_type) = 'fixed' AND date >= $1 AND date < $2 AND tenant_id = $3", [monthStart, nextMonthStart, autoEcoleId]),
+    queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE (LOWER(expense_type) != 'fixed' OR expense_type IS NULL) AND date >= $1 AND date < $2 AND tenant_id = $3", [monthStart, nextMonthStart, autoEcoleId]),
+    query('SELECT license_type, COUNT(*) as count FROM students WHERE registration_date >= $1 AND registration_date < $2 AND auto_ecole_id = $3 GROUP BY license_type', [monthStart, nextMonthStart, autoEcoleId]),
+
+    // Total (All Time)
     queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE auto_ecole_id = $1', [autoEcoleId]),
-    queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE payment_date >= $1 AND auto_ecole_id = $2', [monthStart, autoEcoleId]),
+    queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE LOWER(expense_type) = 'fixed' AND tenant_id = $1", [autoEcoleId]),
+    queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE (LOWER(expense_type) != 'fixed' OR expense_type IS NULL) AND tenant_id = $1", [autoEcoleId]),
+    query('SELECT license_type, COUNT(*) as count FROM students WHERE auto_ecole_id = $1 GROUP BY license_type', [autoEcoleId]),
+    queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE tenant_id = $1', [autoEcoleId]),
+
+    // Other stats
     queryOne('SELECT COUNT(*) as count FROM students s WHERE s.auto_ecole_id = $1 AND s.total_price > (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE student_id = s.id)', [autoEcoleId]),
     query('SELECT * FROM students WHERE reminder_date IS NOT NULL AND reminder_date >= CURRENT_DATE AND auto_ecole_id = $1 ORDER BY reminder_date LIMIT 5', [autoEcoleId]),
     query('SELECT * FROM students WHERE auto_ecole_id = $1 ORDER BY created_at DESC LIMIT 5', [autoEcoleId]),
     query('SELECT p.*, s.full_name FROM payments p JOIN students s ON p.student_id = s.id WHERE p.auto_ecole_id = $1 ORDER BY p.created_at DESC LIMIT 5', [autoEcoleId]),
-    queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE tenant_id = $1', [autoEcoleId]),
-    queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE date >= $1 AND tenant_id = $2', [monthStart, autoEcoleId]),
-    queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE LOWER(expense_type) = 'fixed' AND tenant_id = $1", [autoEcoleId]),
-    queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE (LOWER(expense_type) != 'fixed' OR expense_type IS NULL) AND tenant_id = $1", [autoEcoleId]),
     queryOne('SELECT license_costs FROM settings WHERE auto_ecole_id = $1', [autoEcoleId]),
-    query('SELECT license_type, COUNT(*) as count FROM students WHERE auto_ecole_id = $1 GROUP BY license_type', [autoEcoleId]),
   ]);
 
   const [alertsCounts, todayStages] = await Promise.all([
@@ -1547,12 +1636,7 @@ async function getDashboardStats(autoEcoleId) {
     getTodayStages(autoEcoleId),
   ]);
 
-  const totalRevenue = parseFloat(revenueRow.total);
-  let totalExpenses = parseFloat(totalExpensesRow.total);
-  const fixedExpenses = parseFloat(fixedExpensesRow.total);
-  let variableExpenses = parseFloat(variableExpensesRow.total);
-
-  // ── Per-student licence-cost deduction ────────────────────────────────────
+  // Parse license costs
   let licenseCosts = {};
   if (settingsRow && settingsRow.license_costs) {
     try {
@@ -1562,32 +1646,60 @@ async function getDashboardStats(autoEcoleId) {
     } catch (_) { licenseCosts = {}; }
   }
 
-  let studentCategoryExpenses = 0;
-  if (Array.isArray(studentCountsRow)) {
-    studentCountsRow.forEach(row => {
-      const licType = (row.license_type || '').toUpperCase().trim();
-      const cost    = parseFloat(licenseCosts[licType] || 0);
-      const count   = parseInt(row.count || 0);
-      studentCategoryExpenses += cost * count;
-    });
+  // Helper to compute stats for a single period
+  function computePeriodStats(revenueRow, fixedRow, variableRow, studentCounts) {
+    const revenue = parseFloat(revenueRow.total);
+    const fixed = parseFloat(fixedRow.total);
+    let variable = parseFloat(variableRow.total);
+
+    let studentCostsAmt = 0;
+    if (Array.isArray(studentCounts)) {
+      studentCounts.forEach(row => {
+        const licType = normalizeLicenseType(row.license_type);
+        const cost = parseFloat(licenseCosts[licType] || 0);
+        const count = parseInt(row.count || 0);
+        studentCostsAmt += cost * count;
+      });
+    }
+    variable += studentCostsAmt;
+    const expenses = fixed + variable;
+    const profit = revenue - expenses;
+
+    return { revenue, fixed, variable, expenses, profit };
   }
 
-  variableExpenses += studentCategoryExpenses;
-  totalExpenses    += studentCategoryExpenses;
-  // ─────────────────────────────────────────────────────────────────────────
+  const todayStats = computePeriodStats(todayRevenueRow, todayFixedRow, todayVariableRow, todayStudentCounts);
+  const weekStats = computePeriodStats(weeklyRevenueRow, weeklyFixedRow, weeklyVariableRow, weeklyStudentCounts);
+  const monthStats = computePeriodStats(monthlyRevenueRow, monthlyFixedRow, monthlyVariableRow, monthlyStudentCounts);
+  const totalStats = computePeriodStats(revenueRow, fixedExpensesRow, variableExpensesRow, studentCountsRow);
 
   return {
     totalStudents: parseInt(totalRow.count),
     activeStudents: parseInt(activeRow.count),
     licensesObtained: parseInt(licensesRow.count),
     todayAttendance: parseInt(attendanceRow.count),
-    totalRevenue,
-    monthlyRevenue: parseFloat(monthlyRow.total),
-    totalExpenses,
-    monthlyExpenses: parseFloat(monthlyExpensesRow.total),
-    fixedExpenses,
-    variableExpenses,
-    profit: totalRevenue - totalExpenses,
+    
+    // Top-level fields for backwards compatibility
+    totalRevenue: totalStats.revenue,
+    monthlyRevenue: monthStats.revenue,
+    totalExpenses: totalStats.expenses,
+    monthlyExpenses: monthStats.expenses,
+    fixedExpenses: totalStats.fixed,
+    variableExpenses: totalStats.variable,
+    profit: totalStats.profit,
+    currentMonthFixedExpenses: monthStats.fixed,
+    currentMonthVariableExpenses: monthStats.variable,
+    currentMonthExpenses: monthStats.expenses,
+    currentMonthProfit: monthStats.profit,
+
+    // Nested periods for the new period filter feature
+    periods: {
+      today: todayStats,
+      week: weekStats,
+      month: monthStats,
+      total: totalStats,
+    },
+
     pendingPayments: parseInt(pendingRow.count),
     upcomingReminders: reminders,
     recentStudents,
@@ -1654,13 +1766,14 @@ async function createRecurringExpense(autoEcoleId, data) {
       'INSERT INTO recurring_expenses (auto_ecole_id, group_name, subcategory, amount, notes, last_generated_month, vehicle_plate) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
       [autoEcoleId, group_name, subcategory, amount, notes, currentMonth, vehicle_plate || null]
     );
+    const recurring = recurringResult.rows[0];
 
     await client.query(
       'INSERT INTO expenses (tenant_id, category, subcategory, group_name, expense_type, amount, date, reference, notes, vehicle_plate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-      [autoEcoleId, 'fixed', subcategory, group_name, 'Fixed', amount, today, `AUTO-${currentMonth}`, `Généré automatiquement - ${notes || ''}`, vehicle_plate || null]
+      [autoEcoleId, 'fixed', subcategory, group_name, 'Fixed', amount, today, `AUTO-${recurring.id}-${currentMonth}`, `Généré automatiquement - ${notes || ''}`, vehicle_plate || null]
     );
 
-    return recurringResult.rows[0];
+    return recurring;
   });
 }
 
@@ -1678,25 +1791,65 @@ async function deleteRecurringExpense(id, autoEcoleId) {
 
 async function checkAndGenerateMonthlyExpenses(autoEcoleId) {
   const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
-  const recurring = await getRecurringExpenses(autoEcoleId);
-  
-  for (const item of recurring) {
-    if (item.last_generated_month !== currentMonth) {
-      await withTransaction(async (client) => {
-        // 1. Create the expense record
-        await client.query(
-          'INSERT INTO expenses (tenant_id, category, subcategory, group_name, expense_type, amount, date, reference, notes, vehicle_plate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-          [autoEcoleId, 'fixed', item.subcategory, item.group_name, 'Fixed', item.amount, new Date(), `AUTO-${currentMonth}`, `Généré automatiquement - ${item.notes || ''}`, item.vehicle_plate || null]
+  const monthLockKey = parseInt(currentMonth.replace('-', ''), 10);
+  const today = new Date().toISOString().split('T')[0];
+
+  return withTransaction(async (client) => {
+    await client.query('SELECT pg_advisory_xact_lock($1::integer, $2::integer)', [autoEcoleId, monthLockKey]);
+
+    const recurringResult = await client.query(
+      'SELECT * FROM recurring_expenses WHERE auto_ecole_id = $1 ORDER BY group_name, subcategory FOR UPDATE',
+      [autoEcoleId]
+    );
+
+    let generated = 0;
+    for (const item of recurringResult.rows) {
+      const startMonth = item.last_generated_month || currentMonth;
+      if (startMonth === currentMonth) continue;
+
+      let [lastYear, lastMonth] = startMonth.split('-').map(Number);
+      let [curYear, curMonth] = currentMonth.split('-').map(Number);
+
+      let nextYear = lastYear;
+      let nextMonth = lastMonth + 1;
+      if (nextMonth > 12) {
+        nextMonth = 1;
+        nextYear += 1;
+      }
+
+      while (nextYear < curYear || (nextYear === curYear && nextMonth <= curMonth)) {
+        const monthStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}`;
+        const reference = `AUTO-${item.id}-${monthStr}`;
+        const expenseDate = (monthStr === currentMonth) ? today : `${monthStr}-01`;
+
+        const existing = await client.query(
+          'SELECT id FROM expenses WHERE tenant_id = $1 AND reference = $2 LIMIT 1',
+          [autoEcoleId, reference]
         );
-        // 2. Update the template
-        await client.query(
-          'UPDATE recurring_expenses SET last_generated_month = $1 WHERE id = $2',
-          [currentMonth, item.id]
-        );
-      });
+
+        if (existing.rowCount === 0) {
+          await client.query(
+            'INSERT INTO expenses (tenant_id, category, subcategory, group_name, expense_type, amount, date, reference, notes, vehicle_plate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+            [autoEcoleId, 'fixed', item.subcategory, item.group_name, 'Fixed', item.amount, expenseDate, reference, `Généré automatiquement - ${item.notes || ''}`, item.vehicle_plate || null]
+          );
+          generated += 1;
+        }
+
+        nextMonth += 1;
+        if (nextMonth > 12) {
+          nextMonth = 1;
+          nextYear += 1;
+        }
+      }
+
+      await client.query(
+        'UPDATE recurring_expenses SET last_generated_month = $1 WHERE id = $2 AND auto_ecole_id = $3',
+        [currentMonth, item.id, autoEcoleId]
+      );
     }
-  }
-  return { success: true };
+
+    return { success: true, generated };
+  });
 }
 
 async function getExpenseStats(tenantId) {

@@ -94,6 +94,21 @@ export default function ExpensesPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [checkingRecurring, setCheckingRecurring] = useState(false);
+
+  const handleCheckRecurring = async () => {
+    setCheckingRecurring(true);
+    try {
+      const res = await api.expenses.recurring.check();
+      notify.success('Génération manuelle des dépenses fixes terminée !');
+      await load();
+    } catch (err) {
+      console.error('[check recurring]', err);
+      notify.error('Erreur lors de la génération des dépenses');
+    } finally {
+      setCheckingRecurring(false);
+    }
+  };
 
   const [form, setForm] = useState({
     group_name: 'Administration',
@@ -633,17 +648,27 @@ export default function ExpensesPage() {
               <h3 className="text-lg font-black text-dark uppercase tracking-tight">Dépenses Fixes - {activeGroup}</h3>
               <p className="text-sm text-dark-muted font-medium">Modèles de dépenses générés automatiquement chaque début de mois.</p>
             </div>
-            <Button 
-              icon={<Plus size={18} />} 
-              onClick={() => {
-                const firstFixed = currentGroup.fixed[0] || '';
-                setRecurringForm({ group_name: activeGroup, subcategory: firstFixed, vehicle_plate: '', amount: '', notes: '' });
-                setShowRecurringModal(true);
-              }}
-              className="!bg-primary-600"
-            >
-              Ajouter un modèle
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="secondary"
+                icon={<Database size={18} className={checkingRecurring ? 'animate-spin' : ''} />}
+                onClick={handleCheckRecurring}
+                loading={checkingRecurring}
+              >
+                Générer ce mois
+              </Button>
+              <Button 
+                icon={<Plus size={18} />} 
+                onClick={() => {
+                  const firstFixed = currentGroup.fixed[0] || '';
+                  setRecurringForm({ group_name: activeGroup, subcategory: firstFixed, vehicle_plate: '', amount: '', notes: '' });
+                  setShowRecurringModal(true);
+                }}
+                className="!bg-primary-600"
+              >
+                Ajouter un modèle
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3">

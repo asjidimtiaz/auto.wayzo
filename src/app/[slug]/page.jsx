@@ -93,8 +93,49 @@ export default function DashboardPage() {
 
   useEffect(() => { loadData(); }, []);
 
+  const [period, setPeriod] = useState('month'); // Default to month
   const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
   const todayCapitalized = today.charAt(0).toUpperCase() + today.slice(1);
+
+  const periodLabels = {
+    today: {
+      revenue: "Revenus Aujourd'hui",
+      fixed: "Fixes Aujourd'hui",
+      variable: "Variables Aujourd'hui",
+      profit: "Bénéfice Aujourd'hui",
+    },
+    week: {
+      revenue: "Revenus Cette Semaine",
+      fixed: "Fixes Cette Semaine",
+      variable: "Variables Cette Semaine",
+      profit: "Bénéfice Cette Semaine",
+    },
+    month: {
+      revenue: "Revenus Ce Mois",
+      fixed: "Fixes Ce Mois",
+      variable: "Variables Ce Mois",
+      profit: "Bénéfice Ce Mois",
+    },
+    total: {
+      revenue: "Revenus Totaux",
+      fixed: "Dépenses Fixes",
+      variable: "Dépenses Variables",
+      profit: "Bénéfice Net",
+    },
+  };
+
+  const currentPeriodStats = stats?.periods?.[period] || {
+    revenue: period === 'month' ? (stats?.monthlyRevenue ?? stats?.totalRevenue) : stats?.totalRevenue,
+    fixed: period === 'month' ? (stats?.currentMonthFixedExpenses ?? stats?.fixedExpenses) : stats?.fixedExpenses,
+    variable: period === 'month' ? (stats?.currentMonthVariableExpenses ?? stats?.variableExpenses) : stats?.variableExpenses,
+    expenses: period === 'month' ? (stats?.currentMonthExpenses ?? stats?.totalExpenses) : stats?.totalExpenses,
+    profit: period === 'month' ? (stats?.currentMonthProfit ?? stats?.profit) : stats?.profit,
+  };
+
+  const periodRevenue = currentPeriodStats.revenue;
+  const periodFixedExpenses = currentPeriodStats.fixed;
+  const periodVariableExpenses = currentPeriodStats.variable;
+  const periodProfit = currentPeriodStats.profit;
 
   return (
     <div className="animate-fadeIn space-y-6">
@@ -147,18 +188,54 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* Financial Stats Filter */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white border border-[#e8edf6] p-2.5 rounded-2xl animate-fadeIn" style={{ boxShadow:'0 1px 3px rgba(13,27,46,0.04)' }}>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-50 text-[#2563eb]">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 8.293A1 1 0 013 7.586V4z" />
+            </svg>
+          </div>
+          <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#7f93ae]">Période de comptabilité :</span>
+        </div>
+        <div className="flex bg-[#f8fafc] border border-[#e2e8f0] p-1 rounded-xl">
+          {[
+            { id: 'today', label: "Aujourd'hui" },
+            { id: 'week', label: 'Cette Semaine' },
+            { id: 'month', label: 'Ce Mois' },
+            { id: 'total', label: 'Cumulé' }
+          ].map((item) => {
+            const isActive = period === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setPeriod(item.id)}
+                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${
+                  isActive
+                    ? 'bg-white text-[#2563eb] shadow-sm border border-[#e2e8f0]'
+                    : 'text-[#5c6e84] hover:text-[#0d1b2e]'
+                }`}
+                style={isActive ? { boxShadow: '0 2px 4px rgba(13,27,46,0.05)' } : {}}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Revenue cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Revenus Totaux" value={loading ? null : formatCurrency(stats?.totalRevenue)} loading={loading} color="success" gradient />
-        <StatCard title="Dépenses Fixes" value={loading ? null : formatCurrency(stats?.fixedExpenses)} loading={loading} color="danger" gradient />
-        <StatCard title="Dépenses Variables" value={loading ? null : formatCurrency(stats?.variableExpenses)} loading={loading} color="warning" gradient />
+        <StatCard title={periodLabels[period].revenue} value={loading ? null : formatCurrency(periodRevenue)} loading={loading} color="success" gradient />
+        <StatCard title={periodLabels[period].fixed} value={loading ? null : formatCurrency(periodFixedExpenses)} loading={loading} color="danger" gradient />
+        <StatCard title={periodLabels[period].variable} value={loading ? null : formatCurrency(periodVariableExpenses)} loading={loading} color="warning" gradient />
         <StatCard
-          title="Bénéfice Net"
+          title={periodLabels[period].profit}
           value={
             loading ? null : (
               showProfit ? (
                 <div className="flex items-center justify-between w-full">
-                  <span>{formatCurrency(stats?.profit)}</span>
+                  <span>{formatCurrency(periodProfit)}</span>
                   <svg className="w-5 h-5 opacity-80 shrink-0 ml-2 inline-block cursor-pointer select-none" fill="none" stroke="#ffffff" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                   </svg>
