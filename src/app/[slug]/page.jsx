@@ -28,6 +28,13 @@ function SkeletonRow() {
   );
 }
 
+function localDateInputValue(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 const alertStyles = {
   danger:  'bg-red-50 border border-red-100 text-red-700',
   warning: 'bg-amber-50 border border-amber-100 text-amber-700',
@@ -68,13 +75,14 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [showProfit, setShowProfit] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(localDateInputValue());
 
   async function loadData() {
     try {
       setLoading(true);
       setError(false);
       const [s, a, ss, settings] = await Promise.all([
-        api.dashboard.getStats(),
+        api.dashboard.getStats(selectedDate),
         api.alerts.getAll(),
         api.stages.getSessionTimeStats(),
         api.settings.get(),
@@ -91,7 +99,7 @@ export default function DashboardPage() {
     }
   }
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [selectedDate]);
 
   const [period, setPeriod] = useState('month'); // Default to month
   const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -100,41 +108,42 @@ export default function DashboardPage() {
   const periodLabels = {
     today: {
       revenue: "Revenus Aujourd'hui",
-      fixed: "Fixes Aujourd'hui",
-      variable: "Variables Aujourd'hui",
+      fixed: "Étudiants Aujourd'hui",
+      variable: "Frais Permis Aujourd'hui",
       profit: "Bénéfice Aujourd'hui",
     },
     week: {
       revenue: "Revenus Cette Semaine",
-      fixed: "Fixes Cette Semaine",
-      variable: "Variables Cette Semaine",
+      fixed: "Étudiants Cette Semaine",
+      variable: "Frais Permis Cette Semaine",
       profit: "Bénéfice Cette Semaine",
     },
     month: {
       revenue: "Revenus Ce Mois",
-      fixed: "Fixes Ce Mois",
-      variable: "Variables Ce Mois",
+      fixed: "Étudiants Ce Mois",
+      variable: "Frais Permis Ce Mois",
       profit: "Bénéfice Ce Mois",
     },
     total: {
       revenue: "Revenus Totaux",
-      fixed: "Dépenses Fixes",
-      variable: "Dépenses Variables",
+      fixed: "Total Étudiants",
+      variable: "Frais Permis Totaux",
       profit: "Bénéfice Net",
     },
   };
 
-  const currentPeriodStats = stats?.periods?.[period] || {
+  const currentPeriodStats = stats?.studentPeriods?.[period] || {
     revenue: period === 'month' ? (stats?.monthlyRevenue ?? stats?.totalRevenue) : stats?.totalRevenue,
-    fixed: period === 'month' ? (stats?.currentMonthFixedExpenses ?? stats?.fixedExpenses) : stats?.fixedExpenses,
-    variable: period === 'month' ? (stats?.currentMonthVariableExpenses ?? stats?.variableExpenses) : stats?.variableExpenses,
-    expenses: period === 'month' ? (stats?.currentMonthExpenses ?? stats?.totalExpenses) : stats?.totalExpenses,
+    studentCount: 0,
+    studentCosts: 0,
+    expenses: 0,
     profit: period === 'month' ? (stats?.currentMonthProfit ?? stats?.profit) : stats?.profit,
   };
 
   const periodRevenue = currentPeriodStats.revenue;
-  const periodFixedExpenses = currentPeriodStats.fixed;
-  const periodVariableExpenses = currentPeriodStats.variable;
+  const periodStudentCount = currentPeriodStats.studentCount ?? 0;
+  const periodStudentCosts = currentPeriodStats.studentCosts ?? 0;
+  const periodStudentCostsByLicense = currentPeriodStats.studentCostsByLicense || {};
   const periodProfit = currentPeriodStats.profit;
 
   return (
@@ -196,13 +205,20 @@ export default function DashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 8.293A1 1 0 013 7.586V4z" />
             </svg>
           </div>
-          <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#7f93ae]">Période de comptabilité :</span>
+          <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#7f93ae]">Période des inscriptions :</span>
         </div>
-        <div className="flex bg-[#f8fafc] border border-[#e2e8f0] p-1 rounded-xl">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={e => setSelectedDate(e.target.value || localDateInputValue())}
+            className="h-10 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl px-3 text-xs font-bold text-[#0d1b2e] focus:ring-2 focus:ring-primary-500"
+          />
+          <div className="flex bg-[#f8fafc] border border-[#e2e8f0] p-1 rounded-xl">
           {[
-            { id: 'today', label: "Aujourd'hui" },
-            { id: 'week', label: 'Cette Semaine' },
-            { id: 'month', label: 'Ce Mois' },
+            { id: 'today', label: 'Jour' },
+            { id: 'week', label: 'Semaine' },
+            { id: 'month', label: 'Mois' },
             { id: 'total', label: 'Cumulé' }
           ].map((item) => {
             const isActive = period === item.id;
@@ -221,14 +237,15 @@ export default function DashboardPage() {
               </button>
             );
           })}
+          </div>
         </div>
       </div>
 
       {/* Revenue cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title={periodLabels[period].revenue} value={loading ? null : formatCurrency(periodRevenue)} loading={loading} color="success" gradient />
-        <StatCard title={periodLabels[period].fixed} value={loading ? null : formatCurrency(periodFixedExpenses)} loading={loading} color="danger" gradient />
-        <StatCard title={periodLabels[period].variable} value={loading ? null : formatCurrency(periodVariableExpenses)} loading={loading} color="warning" gradient />
+        <StatCard title={periodLabels[period].fixed} value={loading ? null : periodStudentCount} loading={loading} color="info" gradient />
+        <StatCard title={periodLabels[period].variable} value={loading ? null : formatCurrency(periodStudentCosts)} loading={loading} color="warning" gradient />
         <StatCard
           title={periodLabels[period].profit}
           value={
@@ -257,6 +274,36 @@ export default function DashboardPage() {
           onClick={() => setShowProfit(!showProfit)}
         />
       </div>
+
+      {!loading && periodStudentCosts > 0 && (
+        <div className="bg-white border border-[#e8edf6] rounded-2xl px-4 py-3 shadow-sm">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 1v8m0 0v1m-7-14h10a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#7f93ae]">Déduction automatique des frais de permis</p>
+                <p className="text-sm font-semibold text-[#0d1b2e] mt-0.5">
+                  {formatCurrency(periodStudentCosts)} retirés du bénéfice pour les étudiants inscrits sur cette période.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-3 py-1.5 rounded-lg bg-surface-50 border border-surface-100 text-[11px] font-bold text-dark-muted">
+                Étudiants: {periodStudentCount}
+              </span>
+              {Object.entries(periodStudentCostsByLicense).filter(([, amount]) => amount > 0).map(([type, amount]) => (
+                <span key={type} className="px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-100 text-[11px] font-bold text-amber-700">
+                  Permis {type}: -{formatCurrency(amount)}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Session time cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

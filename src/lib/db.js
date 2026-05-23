@@ -1437,12 +1437,32 @@ async function updateSettings(autoEcoleId, data) {
     : '{"A":0,"B":0,"C":0,"D":0,"E":0}';
 
   return execute(`
-    UPDATE settings SET school_name = $1, address = $2, phone = $3, email = $4,
-    default_training_days = $5, license_number = $6, tax_register = $7, commercial_register = $8,
-    city = $9, web_reference = $10, fax = $11, logo = $12,
-    gsm = $13, tp = $14, cnss = $15, ice = $16, capital = $17, vehicle_plates = $18,
-    license_costs = $19
-    WHERE auto_ecole_id = $20
+    INSERT INTO settings (
+      school_name, address, phone, email, default_training_days, license_number,
+      tax_register, commercial_register, city, web_reference, fax, logo, gsm, tp,
+      cnss, ice, capital, vehicle_plates, license_costs, auto_ecole_id
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+    ON CONFLICT (auto_ecole_id) DO UPDATE SET
+      school_name = EXCLUDED.school_name,
+      address = EXCLUDED.address,
+      phone = EXCLUDED.phone,
+      email = EXCLUDED.email,
+      default_training_days = EXCLUDED.default_training_days,
+      license_number = EXCLUDED.license_number,
+      tax_register = EXCLUDED.tax_register,
+      commercial_register = EXCLUDED.commercial_register,
+      city = EXCLUDED.city,
+      web_reference = EXCLUDED.web_reference,
+      fax = EXCLUDED.fax,
+      logo = EXCLUDED.logo,
+      gsm = EXCLUDED.gsm,
+      tp = EXCLUDED.tp,
+      cnss = EXCLUDED.cnss,
+      ice = EXCLUDED.ice,
+      capital = EXCLUDED.capital,
+      vehicle_plates = EXCLUDED.vehicle_plates,
+      license_costs = EXCLUDED.license_costs,
+      updated_at = CURRENT_TIMESTAMP
   `, [
     data.school_name, data.address || null, data.phone || null, data.email || null,
     data.default_training_days || 30, data.license_number || null, data.tax_register || null,
@@ -1544,8 +1564,15 @@ function normalizeLicenseType(type) {
 
 // ─── DASHBOARD ───────────────────────────────────────────────────────────────
 
-async function getDashboardStats(autoEcoleId) {
-  const todayDate = new Date();
+async function getDashboardStats(autoEcoleId, options = {}) {
+  const parseAnchorDate = (value) => {
+    if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return new Date();
+    const [year, month, day] = value.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return Number.isNaN(date.getTime()) ? new Date() : date;
+  };
+
+  const todayDate = parseAnchorDate(options.date);
   
   // Timezone-safe local date string helper
   function toLocalStr(d) {
@@ -1580,12 +1607,16 @@ async function getDashboardStats(autoEcoleId) {
     totalRow, activeRow, licensesRow, attendanceRow,
     // Today
     todayRevenueRow, todayFixedRow, todayVariableRow, todayStudentCounts,
+    todayStudentSummaryRow,
     // Week
     weeklyRevenueRow, weeklyFixedRow, weeklyVariableRow, weeklyStudentCounts,
+    weeklyStudentSummaryRow,
     // Month
     monthlyRevenueRow, monthlyFixedRow, monthlyVariableRow, monthlyStudentCounts,
+    monthlyStudentSummaryRow,
     // Total (All Time)
     revenueRow, fixedExpensesRow, variableExpensesRow, studentCountsRow,
+    totalStudentSummaryRow,
     totalExpensesRow,
     
     // Other stats
@@ -1603,24 +1634,28 @@ async function getDashboardStats(autoEcoleId) {
     queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE LOWER(expense_type) = 'fixed' AND date = $1 AND tenant_id = $2", [todayStr, autoEcoleId]),
     queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE (LOWER(expense_type) != 'fixed' OR expense_type IS NULL) AND date = $1 AND tenant_id = $2", [todayStr, autoEcoleId]),
     query('SELECT license_type, COUNT(*) as count FROM students WHERE registration_date = $1 AND auto_ecole_id = $2 GROUP BY license_type', [todayStr, autoEcoleId]),
+    queryOne(`SELECT COUNT(*) as count, COALESCE(SUM(CASE WHEN s.total_price = 0 AND o.price IS NOT NULL THEN o.price ELSE s.total_price END), 0) as revenue FROM students s LEFT JOIN offers o ON s.offer_id = o.id WHERE s.registration_date = $1 AND s.auto_ecole_id = $2`, [todayStr, autoEcoleId]),
 
     // Week
     queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE payment_date >= $1 AND payment_date < $2 AND auto_ecole_id = $3', [weekStartStr, nextWeekStartStr, autoEcoleId]),
     queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE LOWER(expense_type) = 'fixed' AND date >= $1 AND date < $2 AND tenant_id = $3", [weekStartStr, nextWeekStartStr, autoEcoleId]),
     queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE (LOWER(expense_type) != 'fixed' OR expense_type IS NULL) AND date >= $1 AND date < $2 AND tenant_id = $3", [weekStartStr, nextWeekStartStr, autoEcoleId]),
     query('SELECT license_type, COUNT(*) as count FROM students WHERE registration_date >= $1 AND registration_date < $2 AND auto_ecole_id = $3 GROUP BY license_type', [weekStartStr, nextWeekStartStr, autoEcoleId]),
+    queryOne(`SELECT COUNT(*) as count, COALESCE(SUM(CASE WHEN s.total_price = 0 AND o.price IS NOT NULL THEN o.price ELSE s.total_price END), 0) as revenue FROM students s LEFT JOIN offers o ON s.offer_id = o.id WHERE s.registration_date >= $1 AND s.registration_date < $2 AND s.auto_ecole_id = $3`, [weekStartStr, nextWeekStartStr, autoEcoleId]),
 
     // Month
     queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE payment_date >= $1 AND payment_date < $2 AND auto_ecole_id = $3', [monthStart, nextMonthStart, autoEcoleId]),
     queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE LOWER(expense_type) = 'fixed' AND date >= $1 AND date < $2 AND tenant_id = $3", [monthStart, nextMonthStart, autoEcoleId]),
     queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE (LOWER(expense_type) != 'fixed' OR expense_type IS NULL) AND date >= $1 AND date < $2 AND tenant_id = $3", [monthStart, nextMonthStart, autoEcoleId]),
     query('SELECT license_type, COUNT(*) as count FROM students WHERE registration_date >= $1 AND registration_date < $2 AND auto_ecole_id = $3 GROUP BY license_type', [monthStart, nextMonthStart, autoEcoleId]),
+    queryOne(`SELECT COUNT(*) as count, COALESCE(SUM(CASE WHEN s.total_price = 0 AND o.price IS NOT NULL THEN o.price ELSE s.total_price END), 0) as revenue FROM students s LEFT JOIN offers o ON s.offer_id = o.id WHERE s.registration_date >= $1 AND s.registration_date < $2 AND s.auto_ecole_id = $3`, [monthStart, nextMonthStart, autoEcoleId]),
 
     // Total (All Time)
     queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE auto_ecole_id = $1', [autoEcoleId]),
     queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE LOWER(expense_type) = 'fixed' AND tenant_id = $1", [autoEcoleId]),
     queryOne("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE (LOWER(expense_type) != 'fixed' OR expense_type IS NULL) AND tenant_id = $1", [autoEcoleId]),
     query('SELECT license_type, COUNT(*) as count FROM students WHERE auto_ecole_id = $1 GROUP BY license_type', [autoEcoleId]),
+    queryOne(`SELECT COUNT(*) as count, COALESCE(SUM(CASE WHEN s.total_price = 0 AND o.price IS NOT NULL THEN o.price ELSE s.total_price END), 0) as revenue FROM students s LEFT JOIN offers o ON s.offer_id = o.id WHERE s.auto_ecole_id = $1`, [autoEcoleId]),
     queryOne('SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE tenant_id = $1', [autoEcoleId]),
 
     // Other stats
@@ -1650,28 +1685,72 @@ async function getDashboardStats(autoEcoleId) {
   function computePeriodStats(revenueRow, fixedRow, variableRow, studentCounts) {
     const revenue = parseFloat(revenueRow.total);
     const fixed = parseFloat(fixedRow.total);
-    let variable = parseFloat(variableRow.total);
+    const manualVariable = parseFloat(variableRow.total);
 
     let studentCostsAmt = 0;
+    const studentCostsByLicense = { A: 0, B: 0, C: 0, D: 0, E: 0 };
     if (Array.isArray(studentCounts)) {
       studentCounts.forEach(row => {
         const licType = normalizeLicenseType(row.license_type);
         const cost = parseFloat(licenseCosts[licType] || 0);
         const count = parseInt(row.count || 0);
-        studentCostsAmt += cost * count;
+        const amount = cost * count;
+        studentCostsAmt += amount;
+        studentCostsByLicense[licType] = (studentCostsByLicense[licType] || 0) + amount;
       });
     }
-    variable += studentCostsAmt;
+    const variable = manualVariable + studentCostsAmt;
     const expenses = fixed + variable;
     const profit = revenue - expenses;
 
-    return { revenue, fixed, variable, expenses, profit };
+    return {
+      revenue,
+      fixed,
+      variable,
+      manualVariable,
+      studentCosts: studentCostsAmt,
+      studentCostsByLicense,
+      expenses,
+      profit,
+    };
+  }
+
+  function computeStudentPeriodStats(summaryRow, studentCounts) {
+    const revenue = parseFloat(summaryRow?.revenue || 0);
+    const studentCount = parseInt(summaryRow?.count || 0);
+    let studentCostsAmt = 0;
+    const studentCostsByLicense = { A: 0, B: 0, C: 0, D: 0, E: 0 };
+
+    if (Array.isArray(studentCounts)) {
+      studentCounts.forEach(row => {
+        const licType = normalizeLicenseType(row.license_type);
+        const cost = parseFloat(licenseCosts[licType] || 0);
+        const count = parseInt(row.count || 0);
+        const amount = cost * count;
+        studentCostsAmt += amount;
+        studentCostsByLicense[licType] = (studentCostsByLicense[licType] || 0) + amount;
+      });
+    }
+
+    return {
+      revenue,
+      studentCount,
+      studentCosts: studentCostsAmt,
+      studentCostsByLicense,
+      expenses: studentCostsAmt,
+      profit: revenue - studentCostsAmt,
+    };
   }
 
   const todayStats = computePeriodStats(todayRevenueRow, todayFixedRow, todayVariableRow, todayStudentCounts);
   const weekStats = computePeriodStats(weeklyRevenueRow, weeklyFixedRow, weeklyVariableRow, weeklyStudentCounts);
   const monthStats = computePeriodStats(monthlyRevenueRow, monthlyFixedRow, monthlyVariableRow, monthlyStudentCounts);
   const totalStats = computePeriodStats(revenueRow, fixedExpensesRow, variableExpensesRow, studentCountsRow);
+
+  const todayStudentStats = computeStudentPeriodStats(todayStudentSummaryRow, todayStudentCounts);
+  const weekStudentStats = computeStudentPeriodStats(weeklyStudentSummaryRow, weeklyStudentCounts);
+  const monthStudentStats = computeStudentPeriodStats(monthlyStudentSummaryRow, monthlyStudentCounts);
+  const totalStudentStats = computeStudentPeriodStats(totalStudentSummaryRow, studentCountsRow);
 
   return {
     totalStudents: parseInt(totalRow.count),
@@ -1699,6 +1778,13 @@ async function getDashboardStats(autoEcoleId) {
       month: monthStats,
       total: totalStats,
     },
+    studentPeriods: {
+      today: todayStudentStats,
+      week: weekStudentStats,
+      month: monthStudentStats,
+      total: totalStudentStats,
+    },
+    selectedDate: todayStr,
 
     pendingPayments: parseInt(pendingRow.count),
     upcomingReminders: reminders,

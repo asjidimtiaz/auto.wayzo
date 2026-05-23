@@ -115,7 +115,7 @@ const api = {
     delete: (id) => apiFetch(`/api/offers?id=${id}`, { method: 'DELETE' }),
   },
   dashboard: {
-    getStats: () => apiFetch('/api/dashboard'),
+    getStats: (date) => apiFetch(`/api/dashboard${date ? `?date=${encodeURIComponent(date)}` : ''}`),
   },
   settings: {
     get: () => apiFetch('/api/settings'),

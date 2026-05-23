@@ -328,6 +328,15 @@ export default function StudentsPage() {
             </select>
             <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
           </div>
+
+          <div className="relative min-w-[180px]">
+            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" /></svg>
+            <select value={filterLicense} onChange={e => setFilterLicense(e.target.value)} className="w-full h-12 bg-white rounded-2xl shadow-soft border border-surface-200 pl-11 pr-4 text-sm focus:ring-2 focus:ring-primary-500 appearance-none transition-all cursor-pointer">
+              <option value="">Tous les permis</option>
+              {LICENSE_TYPES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+            </select>
+            <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          </div>
         </div>
 
         {/* Table */}
