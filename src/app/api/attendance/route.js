@@ -21,8 +21,10 @@ export async function POST(req) {
     const ctx = await requireTenant(req);
     if (!ctx) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     const data = await req.json();
+    if (data.action === 'scanToggle') return NextResponse.json(await db.recordAttendanceToggle(ctx.autoEcoleId, data.studentId));
     if (data.action === 'scanIn') return NextResponse.json(await db.recordAttendanceIn(ctx.autoEcoleId, data.studentId));
     if (data.action === 'scanOut') return NextResponse.json(await db.recordAttendanceOut(ctx.autoEcoleId, data.studentId));
+    if (data.action === 'markAbsent') return NextResponse.json(await db.recordAttendanceAbsent(ctx.autoEcoleId, data.studentId));
     if (data.action === 'cleanup') return NextResponse.json(await db.cleanupDuplicateAttendance(ctx.autoEcoleId));
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (err) { console.error(err); return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 }); }

@@ -68,8 +68,10 @@ const api = {
       apiJSON(`/api/students?id=${id}`, 'PUT', { action: 'updateImage', field, imagePath }),
   },
   attendance: {
+    scanToggle: (studentId) => apiJSON('/api/attendance', 'POST', { action: 'scanToggle', studentId }),
     scanIn: (studentId) => apiJSON('/api/attendance', 'POST', { action: 'scanIn', studentId }),
     scanOut: (studentId) => apiJSON('/api/attendance', 'POST', { action: 'scanOut', studentId }),
+    markAbsent: (studentId) => apiJSON('/api/attendance', 'POST', { action: 'markAbsent', studentId }),
     getByStudent: (studentId) => apiFetch(`/api/attendance?studentId=${studentId}`),
     getToday: () => apiFetch('/api/attendance?action=today'),
     getHistory: () => apiFetch('/api/attendance?action=history'),

@@ -108,28 +108,32 @@ export default function DashboardPage() {
   const periodLabels = {
     today: {
       revenue: "Revenus Aujourd'hui",
-      fixed: "Étudiants Aujourd'hui",
+      fixed: "Dépenses Fixes Aujourd'hui",
       variable: "Frais Permis Aujourd'hui",
       profit: "Bénéfice Aujourd'hui",
     },
     week: {
       revenue: "Revenus Cette Semaine",
-      fixed: "Étudiants Cette Semaine",
+      fixed: "Dépenses Fixes Cette Semaine",
       variable: "Frais Permis Cette Semaine",
       profit: "Bénéfice Cette Semaine",
     },
     month: {
       revenue: "Revenus Ce Mois",
-      fixed: "Étudiants Ce Mois",
+      fixed: "Dépenses Fixes Ce Mois",
       variable: "Frais Permis Ce Mois",
       profit: "Bénéfice Ce Mois",
     },
     total: {
       revenue: "Revenus Totaux",
-      fixed: "Total Étudiants",
+      fixed: "Dépenses Fixes",
       variable: "Frais Permis Totaux",
       profit: "Bénéfice Net",
     },
+  };
+
+  const accountingPeriodStats = stats?.periods?.[period] || {
+    fixed: period === 'month' ? (stats?.currentMonthFixedExpenses ?? stats?.fixedExpenses) : stats?.fixedExpenses,
   };
 
   const currentPeriodStats = stats?.studentPeriods?.[period] || {
@@ -141,10 +145,11 @@ export default function DashboardPage() {
   };
 
   const periodRevenue = currentPeriodStats.revenue;
+  const periodFixedExpenses = accountingPeriodStats.fixed ?? 0;
   const periodStudentCount = currentPeriodStats.studentCount ?? 0;
   const periodStudentCosts = currentPeriodStats.studentCosts ?? 0;
   const periodStudentCostsByLicense = currentPeriodStats.studentCostsByLicense || {};
-  const periodProfit = currentPeriodStats.profit;
+  const periodProfit = periodRevenue - periodFixedExpenses - periodStudentCosts;
 
   return (
     <div className="animate-fadeIn space-y-6">
@@ -244,7 +249,7 @@ export default function DashboardPage() {
       {/* Revenue cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title={periodLabels[period].revenue} value={loading ? null : formatCurrency(periodRevenue)} loading={loading} color="success" gradient />
-        <StatCard title={periodLabels[period].fixed} value={loading ? null : periodStudentCount} loading={loading} color="info" gradient />
+        <StatCard title={periodLabels[period].fixed} value={loading ? null : formatCurrency(periodFixedExpenses)} loading={loading} color="danger" gradient />
         <StatCard title={periodLabels[period].variable} value={loading ? null : formatCurrency(periodStudentCosts)} loading={loading} color="warning" gradient />
         <StatCard
           title={periodLabels[period].profit}

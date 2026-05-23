@@ -259,9 +259,9 @@ export default function SettingsPage() {
                       min="0"
                       step="any"
                       placeholder="0.00"
-                      value={form.license_costs?.[type] ?? 0}
+                      value={form.license_costs?.[type] || ''}
                       onChange={e => {
-                        const val = parseFloat(e.target.value) || 0;
+                        const val = e.target.value === '' ? '' : parseFloat(e.target.value) || 0;
                         setForm(f => ({
                           ...f,
                           license_costs: {
@@ -326,4 +326,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

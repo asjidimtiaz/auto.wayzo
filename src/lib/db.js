@@ -813,10 +813,20 @@ async function recordAttendanceIn(autoEcoleId, studentId) {
   const timeIn = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
   const existing = await queryOne(
-    'SELECT * FROM attendance WHERE student_id = $1 AND date = $2 AND time_out IS NULL AND auto_ecole_id = $3',
+    "SELECT * FROM attendance WHERE student_id = $1 AND date = $2 AND time_out IS NULL AND COALESCE(status, '') != 'Absent' AND auto_ecole_id = $3",
     [studentId, today, autoEcoleId]
   );
   if (existing) return { success: false, message: 'Déjà présent', attendance: existing };
+
+  const absent = await queryOne(
+    "SELECT * FROM attendance WHERE student_id = $1 AND date = $2 AND status = 'Absent' AND auto_ecole_id = $3 ORDER BY id DESC LIMIT 1",
+    [studentId, today, autoEcoleId]
+  );
+  if (absent) {
+    await execute("UPDATE attendance SET time_in = $1, time_out = NULL, status = 'PrÃ©sent' WHERE id = $2", [timeIn, absent.id]);
+    const student = await queryOne('SELECT full_name FROM students WHERE id = $1 AND auto_ecole_id = $2', [studentId, autoEcoleId]);
+    return { success: true, message: 'EntrÃ©e enregistrÃ©e', id: absent.id, student_name: student?.full_name, time_in: timeIn };
+  }
 
   const row = await queryOne(
     "INSERT INTO attendance (auto_ecole_id, student_id, date, time_in, status) VALUES ($1, $2, $3, $4, 'Présent') RETURNING id",
@@ -831,7 +841,7 @@ async function recordAttendanceOut(autoEcoleId, studentId) {
   const timeOut = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
   const existing = await queryOne(
-    'SELECT * FROM attendance WHERE student_id = $1 AND date = $2 AND time_out IS NULL AND auto_ecole_id = $3',
+    "SELECT * FROM attendance WHERE student_id = $1 AND date = $2 AND time_out IS NULL AND COALESCE(status, '') != 'Absent' AND auto_ecole_id = $3",
     [studentId, today, autoEcoleId]
   );
   if (!existing) return { success: false, message: "Pas d'entrée enregistrée aujourd'hui" };
@@ -839,6 +849,44 @@ async function recordAttendanceOut(autoEcoleId, studentId) {
   await execute("UPDATE attendance SET time_out = $1, status = 'Sorti' WHERE id = $2", [timeOut, existing.id]);
   const student = await queryOne('SELECT full_name FROM students WHERE id = $1 AND auto_ecole_id = $2', [studentId, autoEcoleId]);
   return { success: true, message: 'Sortie enregistrée', student_name: student?.full_name, time_out: timeOut };
+}
+
+async function recordAttendanceToggle(autoEcoleId, studentId) {
+  const status = await getStudentAttendanceStatus(autoEcoleId, studentId);
+  if (status === 'present') {
+    const result = await recordAttendanceOut(autoEcoleId, studentId);
+    return { ...result, action: 'out' };
+  }
+  const result = await recordAttendanceIn(autoEcoleId, studentId);
+  return { ...result, action: 'in' };
+}
+
+async function recordAttendanceAbsent(autoEcoleId, studentId) {
+  const today = new Date().toISOString().split('T')[0];
+  const timeOut = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+  const open = await queryOne(
+    "SELECT * FROM attendance WHERE student_id = $1 AND date = $2 AND time_out IS NULL AND COALESCE(status, '') != 'Absent' AND auto_ecole_id = $3",
+    [studentId, today, autoEcoleId]
+  );
+
+  if (open) {
+    await execute("UPDATE attendance SET time_out = $1, status = 'Sorti' WHERE id = $2", [timeOut, open.id]);
+  } else {
+    const existingAbsent = await queryOne(
+      "SELECT * FROM attendance WHERE student_id = $1 AND date = $2 AND status = 'Absent' AND auto_ecole_id = $3",
+      [studentId, today, autoEcoleId]
+    );
+    if (!existingAbsent) {
+      await execute(
+        "INSERT INTO attendance (auto_ecole_id, student_id, date, status) VALUES ($1, $2, $3, 'Absent')",
+        [autoEcoleId, studentId, today]
+      );
+    }
+  }
+
+  const student = await queryOne('SELECT full_name FROM students WHERE id = $1 AND auto_ecole_id = $2', [studentId, autoEcoleId]);
+  return { success: true, message: 'Absence enregistrÃ©e', action: 'absent', student_name: student?.full_name };
 }
 
 async function getAttendanceByStudent(studentId, autoEcoleId) {
@@ -883,7 +931,7 @@ async function cleanupDuplicateAttendance(autoEcoleId) {
 async function getStudentAttendanceStatus(autoEcoleId, studentId) {
   const today = new Date().toISOString().split('T')[0];
   const row = await queryOne(
-    'SELECT * FROM attendance WHERE student_id = $1 AND date = $2 AND time_out IS NULL AND auto_ecole_id = $3',
+    "SELECT * FROM attendance WHERE student_id = $1 AND date = $2 AND time_out IS NULL AND COALESCE(status, '') != 'Absent' AND auto_ecole_id = $3",
     [studentId, today, autoEcoleId]
   );
   return row ? 'present' : 'absent';
@@ -1433,7 +1481,11 @@ async function updateSettings(autoEcoleId, data) {
     : (typeof data.vehicle_plates === 'string' ? data.vehicle_plates : '[]');
 
   const licenseCostsStr = data.license_costs
-    ? (typeof data.license_costs === 'string' ? data.license_costs : JSON.stringify(data.license_costs))
+    ? (typeof data.license_costs === 'string'
+      ? data.license_costs
+      : JSON.stringify(Object.fromEntries(
+        Object.entries(data.license_costs).map(([key, value]) => [key, parseFloat(value) || 0])
+      )))
     : '{"A":0,"B":0,"C":0,"D":0,"E":0}';
 
   return execute(`
@@ -1973,7 +2025,7 @@ module.exports = {
   createSettingsForAutoEcole, getSuperAdminDashboardStats,
   getAllStudents, getStudentById, createStudent, updateStudent, updateStudentImage, deleteStudent,
   markLicenseObtained, updateStudentFollowUp,
-  recordAttendanceIn, recordAttendanceOut, getAttendanceByStudent, getTodayAttendance,
+  recordAttendanceIn, recordAttendanceOut, recordAttendanceToggle, recordAttendanceAbsent, getAttendanceByStudent, getTodayAttendance,
   cleanupDuplicateAttendance, getStudentAttendanceStatus,
   createPayment, getPaymentsByStudent, getAllPayments, deletePayment,
   createPaymentSchedule, getPaymentSchedulesByStudent, markScheduleAsPaid,

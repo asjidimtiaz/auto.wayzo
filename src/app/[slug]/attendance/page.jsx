@@ -65,14 +65,12 @@ export default function AttendancePage() {
         return;
       }
       
-      const isPresent = todayList.some(a => a.student_id === student.id && !a.time_out);
+      const res = await api.attendance.scanToggle(student.id);
       
-      if (isPresent) {
-        await api.attendance.scanOut(student.id);
+      if (res.action === 'out') {
         notify.success(`Sortie enregistrée: ${student.full_name}`);
         setResult({ success: true, action: 'out', student });
       } else {
-        await api.attendance.scanIn(student.id);
         notify.success(`Entrée enregistrée: ${student.full_name}`);
         setResult({ success: true, action: 'in', student });
       }
@@ -81,6 +79,29 @@ export default function AttendancePage() {
       await loadData();
     } catch (err) {
       setResult({ error: true, message: err.message || 'Erreur lors du scan.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const markStudentAttendance = async (student, action) => {
+    if (!student || loading) return;
+    setLoading(true);
+    setResult(null);
+    try {
+      if (action === 'present') {
+        await api.attendance.scanIn(student.id);
+        notify.success(`EntrÃ©e enregistrÃ©e: ${student.full_name}`);
+        setResult({ success: true, action: 'in', student });
+      } else {
+        await api.attendance.markAbsent(student.id);
+        notify.success(`Absence enregistrée: ${student.full_name}`);
+        setResult({ success: true, action: 'absent', student });
+      }
+
+      await loadData();
+    } catch (err) {
+      setResult({ error: true, message: err.message || "Erreur lors de l'enregistrement." });
     } finally {
       setLoading(false);
     }
@@ -95,25 +116,7 @@ export default function AttendancePage() {
       return;
     }
 
-    setLoading(true);
-    setResult(null);
-    try {
-      if (manualAction === 'present') {
-        await api.attendance.scanIn(student.id);
-        notify.success(`EntrÃ©e enregistrÃ©e: ${student.full_name}`);
-        setResult({ success: true, action: 'in', student });
-      } else {
-        await api.attendance.scanOut(student.id);
-        notify.success(`Sortie enregistrÃ©e: ${student.full_name}`);
-        setResult({ success: true, action: 'out', student });
-      }
-
-      await loadData();
-    } catch (err) {
-      setResult({ error: true, message: err.message || "Erreur lors de l'enregistrement." });
-    } finally {
-      setLoading(false);
-    }
+    await markStudentAttendance(student, manualAction);
   };
 
   const startScanner = async () => {
@@ -190,7 +193,7 @@ export default function AttendancePage() {
     };
   }, []);
 
-  const presentIds = useMemo(() => new Set(todayList.filter(a => !a.time_out).map(a => a.student_id)), [todayList]);
+  const presentIds = useMemo(() => new Set(todayList.filter(a => !a.time_out && a.status !== 'Absent').map(a => a.student_id)), [todayList]);
 
   const filteredStudents = useMemo(() => {
     return students.filter(s => {
@@ -361,7 +364,7 @@ export default function AttendancePage() {
                     </div>
                     <div>
                       <p className={`font-bold text-sm ${result.error ? 'text-accent-red' : 'text-accent-green'}`}>
-                        {result.error ? 'Erreur' : result.action === 'in' ? 'Entrée confirmée' : 'Sortie confirmée'}
+                        {result.error ? 'Erreur' : result.action === 'in' ? 'Entrée confirmée' : result.action === 'absent' ? 'Absence confirmée' : 'Sortie confirmée'}
                       </p>
                       <p className="text-sm text-dark-light">{result.message || result.student?.full_name}</p>
                     </div>
@@ -385,25 +388,28 @@ export default function AttendancePage() {
                 </div>
               ) : (
                 <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
-                  {todayList.map((att) => (
+                  {todayList.map((att) => {
+                    const isActive = !att.time_out && att.status !== 'Absent';
+                    return (
                     <div key={att.id} className="flex items-center justify-between group">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${att.time_out ? 'bg-surface-100 text-dark-muted' : 'bg-accent-green/10 text-accent-green'}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${isActive ? 'bg-accent-green/10 text-accent-green' : 'bg-surface-100 text-dark-muted'}`}>
                           {att.full_name?.charAt(0)}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-dark">{att.full_name}</p>
                           <p className="text-xs text-dark-muted">
-                            {att.time_in}
+                            {att.status === 'Absent' ? 'Absent' : att.time_in}
                             {att.time_out && ` → ${att.time_out}`}
                           </p>
                         </div>
                       </div>
-                      <Badge variant={att.time_out ? 'gray' : 'success'}>
-                        {att.time_out ? 'Sorti' : 'Présent'}
+                      <Badge variant={isActive ? 'success' : att.status === 'Absent' ? 'danger' : 'gray'}>
+                        {isActive ? 'Présent' : att.status === 'Absent' ? 'Absent' : 'Sorti'}
                       </Badge>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -452,9 +458,8 @@ export default function AttendancePage() {
               {paginatedStudents.map((s) => {
                 const isPresent = presentIds.has(s.id);
                 return (
-                  <button
+                  <div
                     key={s.id}
-                    onClick={() => processQrCode(s.qr_code || `STU-${s.id}`)}
                     className={`p-4 rounded-2xl border transition-all text-center group hover:shadow-card ${isPresent ? 'bg-accent-green/5 border-accent-green/20' : 'bg-white border-surface-200 hover:border-primary-500/50'}`}
                   >
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3 text-sm font-bold transition-colors ${isPresent ? 'bg-accent-green text-white' : 'bg-surface-100 text-dark-muted group-hover:bg-primary-500 group-hover:text-white'}`}>
@@ -464,7 +469,25 @@ export default function AttendancePage() {
                     <p className={`text-[10px] font-medium uppercase tracking-tighter ${isPresent ? 'text-accent-green' : 'text-dark-muted'}`}>
                       {isPresent ? 'Présent' : 'Absent'}
                     </p>
-                  </button>
+                    <div className="grid grid-cols-2 gap-1.5 mt-3">
+                      <button
+                        type="button"
+                        onClick={() => markStudentAttendance(s, 'present')}
+                        disabled={loading}
+                        className="px-2 py-1.5 rounded-lg bg-accent-green/10 text-accent-green text-[10px] font-bold hover:bg-accent-green hover:text-white transition-all"
+                      >
+                        Présent
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => markStudentAttendance(s, 'absent')}
+                        disabled={loading}
+                        className="px-2 py-1.5 rounded-lg bg-red-50 text-red-600 text-[10px] font-bold hover:bg-red-600 hover:text-white transition-all"
+                      >
+                        Absent
+                      </button>
+                    </div>
+                  </div>
                 );
               })}
             </div>
