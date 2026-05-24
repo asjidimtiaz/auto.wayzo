@@ -12,7 +12,7 @@ function AccountSetupForm() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [user, setUser] = useState(null);
-  const [form, setForm] = useState({ full_name: '', password: '', confirm_password: '' });
+  const [form, setForm] = useState({ password: '', confirm_password: '' });
 
   useEffect(() => {
     async function loadInvite() {
@@ -27,7 +27,6 @@ function AccountSetupForm() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Lien invalide ou expire');
         setUser(data.user);
-        setForm((prev) => ({ ...prev, full_name: data.user.full_name || '' }));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -42,10 +41,6 @@ function AccountSetupForm() {
     e.preventDefault();
     setError('');
 
-    if (!form.full_name.trim()) {
-      setError('Votre nom est requis.');
-      return;
-    }
     if (form.password.length < 6) {
       setError('Le mot de passe doit faire au moins 6 caracteres.');
       return;
@@ -60,7 +55,7 @@ function AccountSetupForm() {
       const res = await fetch('/api/auth/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, full_name: form.full_name, password: form.password }),
+        body: JSON.stringify({ token, password: form.password }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erreur');
@@ -87,7 +82,7 @@ function AccountSetupForm() {
           <h1 className="mt-2 text-2xl font-extrabold text-white">
             {user?.auto_ecole_name || 'Auto-ecole'}
           </h1>
-          <p className="mt-2 text-sm text-white/50">Choisissez votre nom et votre mot de passe personnel.</p>
+          <p className="mt-2 text-sm text-white/50">Votre nom d'utilisateur est fixe. Choisissez seulement votre mot de passe.</p>
         </div>
 
         {loading ? (
@@ -100,20 +95,10 @@ function AccountSetupForm() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {user && (
               <div>
-                <label className="block text-sm font-medium text-white/60 mb-2">Identifiant de connexion</label>
+                <label className="block text-sm font-medium text-white/60 mb-2">Nom d'utilisateur fixe</label>
                 <input value={user.username} disabled className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/60 outline-none" />
               </div>
             )}
-
-            <div>
-              <label className="block text-sm font-medium text-white/60 mb-2">Votre nom</label>
-              <input
-                value={form.full_name}
-                onChange={(e) => setForm((prev) => ({ ...prev, full_name: e.target.value }))}
-                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-blue-400/60"
-                autoComplete="name"
-              />
-            </div>
 
             <div>
               <label className="block text-sm font-medium text-white/60 mb-2">Mot de passe</label>

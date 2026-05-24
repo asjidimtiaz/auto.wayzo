@@ -47,10 +47,12 @@ export default function EditEcolePage() {
   // Admins state
   const [admins, setAdmins] = useState([]);
   const [showAddAdmin, setShowAddAdmin] = useState(false);
-  const [newAdmin, setNewAdmin] = useState({ username: '' });
+  const [newAdmin, setNewAdmin] = useState({ username: '', password: '' });
   const [latestInvite, setLatestInvite] = useState(null);
   const [adminErrors, setAdminErrors] = useState({});
   const [addingAdmin, setAddingAdmin] = useState(false);
+  const [resetPasswords, setResetPasswords] = useState({});
+  const [resettingAdminId, setResettingAdminId] = useState(null);
 
   useEffect(() => {
     async function load() {
@@ -168,6 +170,8 @@ export default function EditEcolePage() {
   function validateNewAdmin() {
     const errs = {};
     if (!newAdmin.username.trim()) errs.username = "Le nom d'utilisateur est requis";
+    if (!newAdmin.password) errs.password = 'Le mot de passe est requis';
+    else if (newAdmin.password.length < 6) errs.password = 'Minimum 6 caracteres';
     setAdminErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -180,15 +184,20 @@ export default function EditEcolePage() {
       const res = await fetch('/api/super-admin/admins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ autoEcoleId: Number(id), username: newAdmin.username }),
+        body: JSON.stringify({ autoEcoleId: Number(id), username: newAdmin.username, password: newAdmin.password }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Erreur');
       }
-      notify.success('Administrateur ajoute. Lien de creation genere.');
-      setLatestInvite({ username: newAdmin.username, setupUrl: data.setupUrl });
-      setNewAdmin({ username: '' });
+      notify.success(data.loginUrl ? 'Administrateur ajoute avec identifiants.' : 'Administrateur ajoute. Lien de creation genere.');
+      setLatestInvite({
+        username: newAdmin.username,
+        password: newAdmin.password,
+        loginUrl: data.loginUrl,
+        setupUrl: data.setupUrl,
+      });
+      setNewAdmin({ username: '', password: '' });
       setAdminErrors({});
       setShowAddAdmin(false);
       const adminsRes = await fetch(`/api/super-admin/admins?autoEcoleId=${id}`);
@@ -214,6 +223,33 @@ export default function EditEcolePage() {
       setAdmins((prev) => prev.filter((a) => a.id !== admin.id));
     } catch (e) {
       notify.error(e.message);
+    }
+  }
+
+  async function handleResetAdminPassword(admin) {
+    const password = resetPasswords[admin.id] || '';
+    if (password.length < 6) {
+      notify.error('Mot de passe minimum 6 caracteres');
+      return;
+    }
+
+    setResettingAdminId(admin.id);
+    try {
+      const res = await fetch(`/api/super-admin/admins?id=${admin.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur');
+      notify.success('Mot de passe mis a jour');
+      setResetPasswords((prev) => ({ ...prev, [admin.id]: '' }));
+      const adminsRes = await fetch(`/api/super-admin/admins?autoEcoleId=${id}`);
+      if (adminsRes.ok) setAdmins(await adminsRes.json());
+    } catch (e) {
+      notify.error(e.message);
+    } finally {
+      setResettingAdminId(null);
     }
   }
 
@@ -405,7 +441,7 @@ export default function EditEcolePage() {
             Administrateurs
           </h2>
           <button
-            onClick={() => { setShowAddAdmin(!showAddAdmin); setNewAdmin({ username: '' }); setAdminErrors({}); }}
+            onClick={() => { setShowAddAdmin(!showAddAdmin); setNewAdmin({ username: '', password: '' }); setAdminErrors({}); }}
             className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary-500 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -427,11 +463,22 @@ export default function EditEcolePage() {
                   className={`w-full h-9 px-3 text-sm border rounded-lg bg-white focus:ring-2 focus:ring-primary-500/20 ${adminErrors.username ? 'border-red-300' : 'border-gray-300 focus:border-primary-500'}`}
                 />
                 {adminErrors.username && <p className="mt-1 text-xs text-red-600">{adminErrors.username}</p>}
-                <p className="mt-2 text-[10px] text-gray-400 italic">Un lien sera genere pour que l'utilisateur choisisse son nom et son mot de passe.</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-dark-muted mb-1">Mot de passe <span className="text-red-500">*</span></label>
+                <input
+                  type="password"
+                  value={newAdmin.password}
+                  onChange={(e) => { setNewAdmin((p) => ({ ...p, password: e.target.value })); if (adminErrors.password) setAdminErrors((p) => ({ ...p, password: '' })); }}
+                  placeholder="Minimum 6 caracteres"
+                  className={`w-full h-9 px-3 text-sm border rounded-lg bg-white focus:ring-2 focus:ring-primary-500/20 ${adminErrors.password ? 'border-red-300' : 'border-gray-300 focus:border-primary-500'}`}
+                />
+                {adminErrors.password && <p className="mt-1 text-xs text-red-600">{adminErrors.password}</p>}
+                <p className="mt-2 text-[10px] text-gray-400 italic">Le nom d'utilisateur reste fixe. L'utilisateur peut changer seulement son mot de passe dans son espace.</p>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-4">
-              <button type="button" onClick={() => { setShowAddAdmin(false); setNewAdmin({ username: '' }); setAdminErrors({}); }} className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button type="button" onClick={() => { setShowAddAdmin(false); setNewAdmin({ username: '', password: '' }); setAdminErrors({}); }} className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
                 Annuler
               </button>
               <button type="submit" disabled={addingAdmin} className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-700 disabled:opacity-50">
@@ -445,14 +492,27 @@ export default function EditEcolePage() {
           <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-blue-900">Lien de creation pour {latestInvite.username}</p>
-                <p className="mt-1 text-xs text-blue-700 break-all">{latestInvite.setupUrl}</p>
+                <p className="text-sm font-semibold text-blue-900">
+                  {latestInvite.loginUrl ? 'Identifiants utilisateur crees' : `Lien de creation pour ${latestInvite.username}`}
+                </p>
+                {latestInvite.loginUrl ? (
+                  <div className="mt-2 grid gap-1 text-xs text-blue-800">
+                    <p><span className="font-bold">Lien utilisateur:</span> <span className="break-all">{latestInvite.loginUrl}</span></p>
+                    <p><span className="font-bold">Nom d'utilisateur:</span> {latestInvite.username}</p>
+                    <p><span className="font-bold">Mot de passe:</span> {latestInvite.password}</p>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-xs text-blue-700 break-all">{latestInvite.setupUrl}</p>
+                )}
               </div>
               <button
                 type="button"
                 onClick={async () => {
-                  await navigator.clipboard?.writeText(latestInvite.setupUrl);
-                  notify.success('Lien copie');
+                  const text = latestInvite.loginUrl
+                    ? `Lien: ${latestInvite.loginUrl}\nUtilisateur: ${latestInvite.username}\nMot de passe: ${latestInvite.password}`
+                    : latestInvite.setupUrl;
+                  await navigator.clipboard?.writeText(text);
+                  notify.success(latestInvite.loginUrl ? 'Identifiants copies' : 'Lien copie');
                 }}
                 className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 bg-white rounded-lg border border-blue-200 hover:bg-blue-50"
               >
@@ -465,7 +525,8 @@ export default function EditEcolePage() {
         {admins.length > 0 ? (
           <div className="space-y-3">
             {admins.map((admin) => (
-              <div key={admin.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg shadow-soft">
+              <div key={admin.id} className="p-4 bg-gray-50 rounded-lg shadow-soft">
+                <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center">
                     <svg className="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
@@ -487,6 +548,24 @@ export default function EditEcolePage() {
                   </span>
                   <button onClick={() => handleDeleteAdmin(admin)} className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 hover:bg-red-50" title="Supprimer">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </div>
+                </div>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <input
+                    type="password"
+                    value={resetPasswords[admin.id] || ''}
+                    onChange={(e) => setResetPasswords((prev) => ({ ...prev, [admin.id]: e.target.value }))}
+                    placeholder="Nouveau mot de passe"
+                    className="h-9 flex-1 px-3 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleResetAdminPassword(admin)}
+                    disabled={resettingAdminId === admin.id}
+                    className="px-3 py-1.5 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  >
+                    {resettingAdminId === admin.id ? 'Mise a jour...' : 'Changer mot de passe'}
                   </button>
                 </div>
               </div>

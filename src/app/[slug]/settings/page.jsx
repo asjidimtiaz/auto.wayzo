@@ -19,6 +19,8 @@ export default function SettingsPage() {
   const [newPlate, setNewPlate] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ password: '', confirm: '' });
   const [logoPreview, setLogoPreview] = useState(null);
   const fileRef = useRef(null);
 
@@ -88,6 +90,29 @@ export default function SettingsPage() {
       notify.success('Paramètres enregistrés avec succès');
     } catch { notify.error('Erreur lors de la sauvegarde'); }
     finally { setSaving(false); }
+  }
+
+  async function handlePasswordUpdate() {
+    if (!passwordForm.password || passwordForm.password.length < 6) {
+      notify.error('Le mot de passe doit faire au moins 6 caracteres');
+      return;
+    }
+    if (passwordForm.password !== passwordForm.confirm) {
+      notify.error('Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      const res = await api.auth.updateProfile({ password: passwordForm.password });
+      if (res?.error) throw new Error(res.error);
+      setPasswordForm({ password: '', confirm: '' });
+      notify.success('Mot de passe mis a jour');
+    } catch (err) {
+      notify.error(err.message || 'Erreur lors de la mise a jour');
+    } finally {
+      setPasswordSaving(false);
+    }
   }
 
   const Section = ({ title, icon, children }) => (
@@ -285,33 +310,36 @@ export default function SettingsPage() {
         {/* Compte & Sécurité */}
         <Card className="mb-6">
           <Card.Header title={<div className="flex items-center gap-2"><span className="text-primary-500"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg></span>Compte & Sécurité</div>} />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="form-label">Nouveau mot de passe</label>
               <input 
                 type="password" 
                 placeholder="Laisser vide pour ne pas changer"
+                value={passwordForm.password}
+                onChange={e => setPasswordForm(f => ({ ...f, password: e.target.value }))}
                 className="form-input"
-                onChange={e => setForm(f => ({ ...f, new_password: e.target.value }))}
+                autoComplete="new-password"
               />
-              <p className="mt-2 text-xs text-dark-muted">Min. 6 caractères pour plus de sécurité.</p>
             </div>
-            <div className="flex items-end pb-1">
+            <div>
+              <label className="form-label">Confirmer le mot de passe</label>
+              <input
+                type="password"
+                placeholder="Retapez le mot de passe"
+                value={passwordForm.confirm}
+                onChange={e => setPasswordForm(f => ({ ...f, confirm: e.target.value }))}
+                className="form-input"
+                autoComplete="new-password"
+              />
+            </div>
+            <div className="md:col-span-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
+              <p className="text-xs text-dark-muted">Minimum 6 caracteres. Le nom d'utilisateur reste fixe.</p>
               <Button 
                 type="button" 
                 variant="secondary"
-                onClick={async () => {
-                  if (!form.new_password || form.new_password.length < 6) {
-                    notify.error('Le mot de passe doit faire au moins 6 caractères');
-                    return;
-                  }
-                  try {
-                    await api.auth.updateProfile({ password: form.new_password });
-                    notify.success('Mot de passe mis à jour');
-                  } catch {
-                    notify.error('Erreur lors de la mise à jour');
-                  }
-                }}
+                loading={passwordSaving}
+                onClick={handlePasswordUpdate}
               >
                 Mettre à jour le mot de passe
               </Button>

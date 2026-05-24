@@ -38,14 +38,23 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
-    const slug = user?.slug;
     const role = user?.role;
+    let pathSlug = null;
+    if (typeof window !== 'undefined') {
+      const parts = window.location.pathname.split('/');
+      pathSlug = parts[1];
+      if (pathSlug && pathSlug !== 'login' && pathSlug !== 'super-admin' && pathSlug !== 'api') {
+        window.localStorage.setItem('last_tenant_slug', pathSlug);
+      }
+    }
+    const storedSlug = typeof window !== 'undefined' ? window.localStorage.getItem('last_tenant_slug') : null;
+    const slug = pathSlug || user?.slug || storedSlug;
     await fetch('/api/auth', { method: 'DELETE' });
     setUser(null);
-    if (role === 'super_admin') {
-      window.location.href = '/login';
-    } else if (slug) {
+    if (slug && slug !== 'login' && slug !== 'super-admin' && slug !== 'api') {
       window.location.href = `/${slug}/login`;
+    } else if (role === 'super_admin') {
+      window.location.href = '/login';
     } else {
       window.location.href = '/login';
     }

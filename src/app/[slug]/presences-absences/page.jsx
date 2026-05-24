@@ -75,7 +75,7 @@ export default function PresencesAbsencesPage() {
     }
   }, [view]);
 
-  const presentIds = useMemo(() => new Set(todayAttendance.filter(a => !a.time_out && a.status !== 'Absent').map(a => a.student_id)), [todayAttendance]);
+  const presentIds = useMemo(() => new Set(todayAttendance.filter(a => a.time_in && !a.time_out).map(a => a.student_id)), [todayAttendance]);
 
   const stats = useMemo(() => {
     const total = students.length;

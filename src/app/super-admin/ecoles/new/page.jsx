@@ -7,7 +7,7 @@ import { useNotification } from '@/lib/notification';
 const INITIAL_FORM = {
   name: '', slug: '', address: '', phone: '', gsm: '', email: '', fax: '', city: '',
   tax_register: '', commercial_register: '', tp: '', cnss: '', ice: '', capital: '',
-  web_reference: '', adminUsername: '',
+  web_reference: '', adminUsername: '', adminPassword: '',
 };
 
 function slugify(s) {
@@ -62,6 +62,8 @@ export default function NewEcolePage() {
     if (!form.slug.trim()) errs.slug = 'Le slug est requis';
     else if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(form.slug)) errs.slug = 'Le slug doit contenir uniquement des lettres minuscules, chiffres et tirets';
     if (!form.adminUsername.trim()) errs.adminUsername = "Le nom d'utilisateur admin est requis";
+    if (!form.adminPassword) errs.adminPassword = 'Le mot de passe admin est requis';
+    else if (form.adminPassword.length < 6) errs.adminPassword = 'Minimum 6 caracteres';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -93,6 +95,7 @@ export default function NewEcolePage() {
           tp: form.tp, cnss: form.cnss, ice: form.ice, capital: form.capital,
           web_reference: form.web_reference, logo: logoPath,
           adminUsername: form.adminUsername,
+          adminPassword: form.adminPassword,
         }),
       });
       const data = await res.json();
@@ -100,8 +103,13 @@ export default function NewEcolePage() {
         throw new Error(data.error || "Erreur lors de la creation de l'auto-ecole");
       }
       notify.success('Auto-ecole creee avec succes');
-      if (data.setupUrl) {
-        setCreatedInvite({ username: form.adminUsername, setupUrl: data.setupUrl });
+      if (data.loginUrl || data.setupUrl) {
+        setCreatedInvite({
+          username: form.adminUsername,
+          password: form.adminPassword,
+          loginUrl: data.loginUrl,
+          setupUrl: data.setupUrl,
+        });
       } else {
         router.push('/super-admin/ecoles');
       }
@@ -141,18 +149,31 @@ export default function NewEcolePage() {
 
       {createdInvite && (
         <div className="mb-6 bg-blue-50 border border-blue-100 rounded-xl p-4">
-          <p className="text-sm font-semibold text-blue-900">Lien de creation pour {createdInvite.username}</p>
-          <p className="mt-2 text-xs text-blue-700 break-all">{createdInvite.setupUrl}</p>
+          <p className="text-sm font-semibold text-blue-900">
+            {createdInvite.loginUrl ? 'Identifiants utilisateur crees' : `Lien de creation pour ${createdInvite.username}`}
+          </p>
+          {createdInvite.loginUrl ? (
+            <div className="mt-3 grid gap-2 text-xs text-blue-800">
+              <p><span className="font-bold">Lien utilisateur:</span> <span className="break-all">{createdInvite.loginUrl}</span></p>
+              <p><span className="font-bold">Nom d'utilisateur:</span> {createdInvite.username}</p>
+              <p><span className="font-bold">Mot de passe:</span> {createdInvite.password}</p>
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-blue-700 break-all">{createdInvite.setupUrl}</p>
+          )}
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={async () => {
-                await navigator.clipboard?.writeText(createdInvite.setupUrl);
-                notify.success('Lien copie');
+                const text = createdInvite.loginUrl
+                  ? `Lien: ${createdInvite.loginUrl}\nUtilisateur: ${createdInvite.username}\nMot de passe: ${createdInvite.password}`
+                  : createdInvite.setupUrl;
+                await navigator.clipboard?.writeText(text);
+                notify.success(createdInvite.loginUrl ? 'Identifiants copies' : 'Lien copie');
               }}
               className="px-3 py-2 text-sm font-medium text-blue-700 bg-white rounded-lg border border-blue-200 hover:bg-blue-50"
             >
-              Copier le lien
+              {createdInvite.loginUrl ? 'Copier les identifiants' : 'Copier le lien'}
             </button>
             <button
               type="button"
@@ -314,7 +335,12 @@ export default function NewEcolePage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Nom d'utilisateur <span className="text-red-500">*</span></label>
               <input type="text" value={form.adminUsername} onChange={(e) => updateField('adminUsername', e.target.value)} placeholder="admin" className={inputClass('adminUsername')} />
               {errors.adminUsername && <p className="mt-1 text-xs text-red-600">{errors.adminUsername}</p>}
-              <p className="mt-2 text-[10px] text-gray-400 italic">Un lien sera genere pour que l'utilisateur choisisse son nom et son mot de passe.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe <span className="text-red-500">*</span></label>
+              <input type="password" value={form.adminPassword} onChange={(e) => updateField('adminPassword', e.target.value)} placeholder="Minimum 6 caracteres" className={inputClass('adminPassword')} />
+              {errors.adminPassword && <p className="mt-1 text-xs text-red-600">{errors.adminPassword}</p>}
+              <p className="mt-2 text-[10px] text-gray-400 italic">Le nom d'utilisateur reste fixe. L'utilisateur peut changer seulement son mot de passe dans son espace.</p>
             </div>
           </div>
         </div>

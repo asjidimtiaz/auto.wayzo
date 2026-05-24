@@ -26,6 +26,7 @@ export default function AttendancePage() {
 
   const scannerRef = useRef(null);
   const scannerInstanceRef = useRef(null);
+  const processingRef = useRef(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -45,7 +46,8 @@ export default function AttendancePage() {
   }, [loadData]);
 
   const processQrCode = async (qrCode) => {
-    if (!qrCode || loading) return;
+    if (!qrCode || processingRef.current) return;
+    processingRef.current = true;
     setLoading(true);
     setResult(null);
     try {
@@ -81,6 +83,7 @@ export default function AttendancePage() {
       setResult({ error: true, message: err.message || 'Erreur lors du scan.' });
     } finally {
       setLoading(false);
+      processingRef.current = false;
     }
   };
 
@@ -91,7 +94,7 @@ export default function AttendancePage() {
     try {
       if (action === 'present') {
         await api.attendance.scanIn(student.id);
-        notify.success(`EntrÃ©e enregistrÃ©e: ${student.full_name}`);
+        notify.success(`Entree enregistree: ${student.full_name}`);
         setResult({ success: true, action: 'in', student });
       } else {
         await api.attendance.markAbsent(student.id);
@@ -112,7 +115,7 @@ export default function AttendancePage() {
 
     const student = students.find(s => String(s.id) === String(manualStudentId));
     if (!student) {
-      setResult({ error: true, message: 'SÃ©lectionnez un Ã©tudiant.' });
+      setResult({ error: true, message: 'Selectionnez un etudiant.' });
       return;
     }
 
@@ -193,7 +196,7 @@ export default function AttendancePage() {
     };
   }, []);
 
-  const presentIds = useMemo(() => new Set(todayList.filter(a => !a.time_out && a.status !== 'Absent').map(a => a.student_id)), [todayList]);
+  const presentIds = useMemo(() => new Set(todayList.filter(a => a.time_in && !a.time_out).map(a => a.student_id)), [todayList]);
 
   const filteredStudents = useMemo(() => {
     return students.filter(s => {
@@ -389,7 +392,7 @@ export default function AttendancePage() {
               ) : (
                 <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
                   {todayList.map((att) => {
-                    const isActive = !att.time_out && att.status !== 'Absent';
+                    const isActive = !!att.time_in && !att.time_out;
                     return (
                     <div key={att.id} className="flex items-center justify-between group">
                       <div className="flex items-center gap-3">

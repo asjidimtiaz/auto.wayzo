@@ -12,8 +12,10 @@ export async function PUT(req) {
 
     const { username, password } = await req.json();
     
-    // We update the user by their ID from context
     if (password) {
+      if (String(password).length < 6) {
+        return NextResponse.json({ error: 'Le mot de passe doit faire au moins 6 caracteres' }, { status: 400 });
+      }
       await db.updateTenantAdminPassword(ctx.userId, password);
     }
     

@@ -32,14 +32,14 @@ export async function POST(req) {
   try {
     await db.initDb();
     const { token, full_name, password } = await req.json();
-    if (!token || !String(full_name || '').trim() || !password) {
-      return NextResponse.json({ error: 'Nom et mot de passe requis' }, { status: 400 });
+    if (!token || !password) {
+      return NextResponse.json({ error: 'Mot de passe requis' }, { status: 400 });
     }
     if (String(password).length < 6) {
       return NextResponse.json({ error: 'Le mot de passe doit faire au moins 6 caracteres' }, { status: 400 });
     }
 
-    const user = await db.completeTenantAdminSetup(token, String(full_name).trim(), password);
+    const user = await db.completeTenantAdminSetup(token, String(full_name || '').trim(), password);
     if (!user) return NextResponse.json({ error: 'Lien invalide ou expire' }, { status: 404 });
 
     return NextResponse.json({

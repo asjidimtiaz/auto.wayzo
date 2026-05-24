@@ -36,13 +36,19 @@ export async function POST(req) {
     await db.createSettingsForAutoEcole(ae.id, { school_name: data.name });
 
     let setupUrl = null;
+    let loginUrl = null;
     if (data.adminUsername) {
-      const result = await db.createTenantAdmin(ae.id, String(data.adminUsername).trim(), null, { invite: true });
+      const password = String(data.adminPassword || '').trim();
       const origin = req.headers.get('origin') || new URL(req.url).origin;
-      setupUrl = `${origin}/${data.slug}/setup?token=${encodeURIComponent(result.setupToken)}`;
+      const result = await db.createTenantAdmin(ae.id, String(data.adminUsername).trim(), password || null, { invite: !password });
+      if (password) {
+        loginUrl = `${origin}/${data.slug}/login`;
+      } else {
+        setupUrl = `${origin}/${data.slug}/setup?token=${encodeURIComponent(result.setupToken)}`;
+      }
     }
 
-    return NextResponse.json({ success: true, id: ae.id, setupUrl });
+    return NextResponse.json({ success: true, id: ae.id, setupUrl, loginUrl });
   } catch (err) {
     console.error(err);
     if (err.code === '23505') return NextResponse.json({ error: 'Ce slug est deja utilise' }, { status: 409 });

@@ -4,6 +4,9 @@ const _cache = new Map();
 
 export function setTenantSlug(slug) {
   _slug = slug;
+  if (typeof window !== 'undefined' && slug) {
+    window.localStorage.setItem('last_tenant_slug', slug);
+  }
 }
 
 function apiFetch(url, options = {}) {
