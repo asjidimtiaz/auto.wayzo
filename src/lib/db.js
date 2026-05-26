@@ -507,14 +507,14 @@ async function initDbInternal() {
   const bcrypt = require('bcryptjs');
   const countAdmins = parseInt((await p.query('SELECT COUNT(*) as count FROM admins')).rows[0].count);
   if (countAdmins === 0) {
-    const hash = await bcrypt.hash('Login@2026', 10);
+    const hash = await bcrypt.hash('Admin@2026', 10);
     await p.query(
       "INSERT INTO admins (username, password, role, auto_ecole_id) VALUES ($1, $2, $3, NULL)",
-      ['Login', hash, 'super_admin']
+      ['Admin', hash, 'super_admin']
     );
   }
 
-  await p.query("UPDATE admins SET role = 'super_admin' WHERE username = 'admin' AND (role IS NULL OR role = 'admin') AND auto_ecole_id IS NULL");
+  await p.query("UPDATE admins SET role = 'super_admin', username = 'Admin' WHERE LOWER(username) = 'admin' AND (role IS NULL OR role = 'admin') AND auto_ecole_id IS NULL");
 
   // Backfill auto_ecole_id
   const firstAe = await queryOne('SELECT id FROM auto_ecoles ORDER BY id LIMIT 1');

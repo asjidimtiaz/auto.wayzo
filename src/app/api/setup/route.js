@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 // One-time setup / password reset endpoint
 // Usage: GET /api/setup?secret=YOUR_SETUP_SECRET
-// This will reset or create the super admin with username "Login" and password "Login@2026"
+// This will reset or create the super admin with username "Admin" and password "Admin@2026"
 
 export async function GET(req) {
   try {
@@ -21,34 +21,40 @@ export async function GET(req) {
     await db.initDb();
 
     const bcrypt = require('bcryptjs');
-    const hash = await bcrypt.hash('Login@2026', 10);
+    const hash = await bcrypt.hash('Admin@2026', 10);
 
-    // Check if super admin already exists
-    const existing = await db.getAdminByUsername('Login');
+    // Prefer the Admin account if it already exists so this endpoint can be run repeatedly.
+    let existing = await db.query("SELECT * FROM admins WHERE username = $1 LIMIT 1", ['Admin']);
+    if (existing.length === 0) {
+      existing = await db.query("SELECT * FROM admins WHERE username = $1 AND role = 'super_admin' LIMIT 1", ['Login']);
+    }
+    if (existing.length === 0) {
+      existing = await db.query("SELECT * FROM admins WHERE role = 'super_admin' LIMIT 1");
+    }
 
-    if (existing) {
+    if (existing.length > 0) {
       // Update password
       await db.query(
-        'UPDATE admins SET password = $1, role = $2 WHERE username = $3',
-        [hash, 'super_admin', 'Login']
+        'UPDATE admins SET username = $1, password = $2, role = $3 WHERE id = $4',
+        ['Admin', hash, 'super_admin', existing[0].id]
       );
       return NextResponse.json({
         success: true,
         message: 'Super admin password reset successfully.',
-        username: 'Login',
-        password: 'Login@2026',
+        username: 'Admin',
+        password: 'Admin@2026',
       });
     } else {
       // Create new super admin
       await db.query(
         "INSERT INTO admins (username, password, role, auto_ecole_id) VALUES ($1, $2, 'super_admin', NULL)",
-        ['Login', hash]
+        ['Admin', hash]
       );
       return NextResponse.json({
         success: true,
         message: 'Super admin created successfully.',
-        username: 'Login',
-        password: 'Login@2026',
+        username: 'Admin',
+        password: 'Admin@2026',
       });
     }
   } catch (err) {

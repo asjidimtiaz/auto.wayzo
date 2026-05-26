@@ -253,19 +253,19 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        {/* Frais Fixes de Dossier par Étudiant */}
+        {/* Frais permis automatiques par étudiant */}
         <Card className="mb-6">
           <Card.Header title={
             <div className="flex items-center gap-2">
               <span className="text-emerald-500">
                 <Coins className="w-5 h-5" />
               </span>
-              <span>Frais de Dossier / Dépenses par Étudiant</span>
+              <span>Frais Permis / Dépenses Variables par Étudiant</span>
             </div>
           } />
           <div className="space-y-4">
             <p className="text-sm text-dark-muted">
-              Définissez les frais de dossier ou taxes applicables à chaque étudiant en fonction de son type de permis. Ces coûts seront automatiquement déduits du bénéfice net global sur votre tableau de bord (comptabilisés en dépenses variables).
+              Définissez le coût à retirer automatiquement pour chaque étudiant selon son type de permis. Ce montant est connecté au prix total des étudiants et apparaît dans les dépenses variables du tableau de bord.
             </p>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">

@@ -109,31 +109,33 @@ export default function DashboardPage() {
     today: {
       revenue: "Revenus Aujourd'hui",
       fixed: "Dépenses Fixes Aujourd'hui",
-      variable: "Frais Permis Aujourd'hui",
+      variable: "Dépenses Variables Aujourd'hui",
       profit: "Bénéfice Aujourd'hui",
     },
     week: {
       revenue: "Revenus Cette Semaine",
       fixed: "Dépenses Fixes Cette Semaine",
-      variable: "Frais Permis Cette Semaine",
+      variable: "Dépenses Variables Cette Semaine",
       profit: "Bénéfice Cette Semaine",
     },
     month: {
       revenue: "Revenus Ce Mois",
       fixed: "Dépenses Fixes Ce Mois",
-      variable: "Frais Permis Ce Mois",
+      variable: "Dépenses Variables Ce Mois",
       profit: "Bénéfice Ce Mois",
     },
     total: {
       revenue: "Revenus Totaux",
       fixed: "Dépenses Fixes",
-      variable: "Frais Permis Totaux",
+      variable: "Dépenses Variables",
       profit: "Bénéfice Net",
     },
   };
 
   const accountingPeriodStats = stats?.periods?.[period] || {
     fixed: period === 'month' ? (stats?.currentMonthFixedExpenses ?? stats?.fixedExpenses) : stats?.fixedExpenses,
+    variable: period === 'month' ? (stats?.currentMonthVariableExpenses ?? stats?.variableExpenses) : stats?.variableExpenses,
+    manualVariable: 0,
   };
 
   const currentPeriodStats = stats?.studentPeriods?.[period] || {
@@ -146,10 +148,12 @@ export default function DashboardPage() {
 
   const periodRevenue = currentPeriodStats.revenue;
   const periodFixedExpenses = accountingPeriodStats.fixed ?? 0;
+  const periodVariableExpenses = accountingPeriodStats.variable ?? currentPeriodStats.expenses ?? 0;
+  const periodManualVariableExpenses = accountingPeriodStats.manualVariable ?? Math.max(periodVariableExpenses - (currentPeriodStats.studentCosts ?? 0), 0);
   const periodStudentCount = currentPeriodStats.studentCount ?? 0;
   const periodStudentCosts = currentPeriodStats.studentCosts ?? 0;
   const periodStudentCostsByLicense = currentPeriodStats.studentCostsByLicense || {};
-  const periodProfit = periodRevenue - periodFixedExpenses - periodStudentCosts;
+  const periodProfit = periodRevenue - periodFixedExpenses - periodVariableExpenses;
 
   return (
     <div className="animate-fadeIn space-y-6">
@@ -250,7 +254,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title={periodLabels[period].revenue} value={loading ? null : formatCurrency(periodRevenue)} loading={loading} color="success" gradient />
         <StatCard title={periodLabels[period].fixed} value={loading ? null : formatCurrency(periodFixedExpenses)} loading={loading} color="danger" gradient />
-        <StatCard title={periodLabels[period].variable} value={loading ? null : formatCurrency(periodStudentCosts)} loading={loading} color="warning" gradient />
+        <StatCard title={periodLabels[period].variable} value={loading ? null : formatCurrency(periodVariableExpenses)} loading={loading} color="warning" gradient />
         <StatCard
           title={periodLabels[period].profit}
           value={
@@ -280,7 +284,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      {!loading && periodStudentCosts > 0 && (
+      {!loading && periodVariableExpenses > 0 && (
         <div className="bg-white border border-[#e8edf6] rounded-2xl px-4 py-3 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <div className="flex items-start gap-3">
@@ -290,9 +294,9 @@ export default function DashboardPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#7f93ae]">Déduction automatique des frais de permis</p>
+                <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#7f93ae]">Dépenses variables connectées au permis</p>
                 <p className="text-sm font-semibold text-[#0d1b2e] mt-0.5">
-                  {formatCurrency(periodStudentCosts)} retirés du bénéfice pour les étudiants inscrits sur cette période.
+                  Les dépenses variables incluent les frais saisis et {formatCurrency(periodStudentCosts)} de frais permis retirés automatiquement selon les étudiants inscrits sur cette période.
                 </p>
               </div>
             </div>
@@ -300,6 +304,11 @@ export default function DashboardPage() {
               <span className="px-3 py-1.5 rounded-lg bg-surface-50 border border-surface-100 text-[11px] font-bold text-dark-muted">
                 Étudiants: {periodStudentCount}
               </span>
+              {periodManualVariableExpenses > 0 && (
+                <span className="px-3 py-1.5 rounded-lg bg-orange-50 border border-orange-100 text-[11px] font-bold text-orange-700">
+                  Variables saisies: -{formatCurrency(periodManualVariableExpenses)}
+                </span>
+              )}
               {Object.entries(periodStudentCostsByLicense).filter(([, amount]) => amount > 0).map(([type, amount]) => (
                 <span key={type} className="px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-100 text-[11px] font-bold text-amber-700">
                   Permis {type}: -{formatCurrency(amount)}
