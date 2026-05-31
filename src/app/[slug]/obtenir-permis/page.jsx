@@ -11,15 +11,6 @@ import StatCard from '@/components/StatCard';
 import Pagination from '@/components/Pagination';
 import { formatDate, LICENSE_TYPES } from '@/lib/utils';
 
-const MOCK_STUDENTS = [
-  { id: 'mock-1', full_name: 'Mohamed El Amrani', cin: 'AB123456', phone: '0612345678', license_obtained: true, license_type: 'B', license_obtained_type: 'B', license_obtained_date: '2024-01-15' },
-  { id: 'mock-2', full_name: 'Fatima Zahra', cin: 'CD789012', phone: '0676543210', license_obtained: true, license_type: 'B', license_obtained_type: 'B', license_obtained_date: '2024-02-10' },
-  { id: 'mock-3', full_name: 'Yassine Benali', cin: 'EF345678', phone: '0655443322', license_obtained: true, license_type: 'A', license_obtained_type: 'A', license_obtained_date: '2023-11-20' },
-  { id: 'mock-4', full_name: 'Sanaa Mansouri', cin: 'GH901234', phone: '0688776655', license_obtained: true, license_type: 'C', license_obtained_type: 'C', license_obtained_date: '2024-03-05' },
-  { id: 'mock-5', full_name: 'Ahmed Touzani', cin: 'IJ567890', phone: '0644332211', license_obtained: true, license_type: 'D', license_obtained_type: 'D', license_obtained_date: '2024-04-12' },
-  { id: 'mock-6', full_name: 'Khadija Radi', cin: 'KL123456', phone: '0699887766', license_obtained: true, license_type: 'B', license_obtained_type: 'B', license_obtained_date: '2023-12-28' },
-];
-
 export default function ObtenirPermisPage() {
   const { slug } = useParams();
   const notify = useNotification();
@@ -40,11 +31,11 @@ export default function ObtenirPermisPage() {
     try {
       const [s, o] = await Promise.all([api.students.getAll(), api.offers.getAll()]);
       const realStudents = Array.isArray(s) ? s.filter(st => st.license_obtained) : [];
-      setStudents([...realStudents, ...MOCK_STUDENTS]);
+      setStudents(realStudents);
       setOffers(Array.isArray(o) ? o : []);
     } catch { 
-      setStudents(MOCK_STUDENTS);
-      notify.error('Erreur de chargement (Mode démo activé)'); 
+      setStudents([]);
+      notify.error('Erreur de chargement');
     } finally { 
       setLoading(false); 
     }
@@ -265,4 +256,3 @@ export default function ObtenirPermisPage() {
     </div>
   );
 }
-

@@ -155,6 +155,14 @@ export default function DashboardPage() {
   const periodStudentCostsByLicense = currentPeriodStats.studentCostsByLicense || {};
   const periodProfit = periodRevenue - periodFixedExpenses - periodVariableExpenses;
 
+  const categoryStats = stats?.categoryPeriods?.[period] || {};
+  const motoStats = categoryStats.moto || { revenue: 0, expenses: 0, profit: 0 };
+  const voitureStats = categoryStats.voiture || { revenue: 0, expenses: 0, profit: 0 };
+  const categoryCards = [
+    { key: 'moto', label: 'Bénéfice Moto', emoji: '🏍️', data: motoStats, iconBg: '#ede9fe' },
+    { key: 'voiture', label: 'Bénéfice Voiture', emoji: '🚗', data: voitureStats, iconBg: '#fef3c7' },
+  ];
+
   return (
     <div className="animate-fadeIn space-y-6">
 
@@ -318,6 +326,33 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Benefit by vehicle category (auto-derived from student license type) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {categoryCards.map(({ key, label, emoji, data, iconBg }) => (
+          <div
+            key={key}
+            onClick={() => setShowProfit(!showProfit)}
+            className="cursor-pointer"
+            style={{ background:'#ffffff', border:'1px solid #e8edf6', borderRadius:'14px', padding:'18px 20px', boxShadow:'0 1px 3px rgba(13,27,46,0.06)' }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#7f93ae]">{label}</p>
+                <p className="text-2xl font-extrabold mt-1" style={{ color: data.profit >= 0 ? '#0d1b2e' : '#dc2626' }}>
+                  {loading ? '—' : (showProfit ? formatCurrency(data.profit) : <span className="blur-sm select-none tracking-widest font-mono font-medium">••• •••</span>)}
+                </p>
+                <p className="text-xs mt-1 text-[#7f93ae]">
+                  {loading ? '' : `Revenus ${formatCurrency(data.revenue)} · Dépenses ${formatCurrency(data.expenses)}`}
+                </p>
+              </div>
+              <div style={{ width:42, height:42, borderRadius:11, background:iconBg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                <span style={{ fontSize:20, lineHeight:1 }}>{emoji}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {/* Session time cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -199,7 +199,7 @@ export default function CalculatorPage() {
       const res = await api.contracts.generate(selectedStudent.id);
       if (res.success) {
         notify.success('Contrat généré');
-        window.open(res.path, '_blank');
+        window.open(`/api/files/view?path=${encodeURIComponent(res.path)}`, '_blank');
         // Refresh documents list
         api.documents.getByStudent(selectedStudent.id).then(setStudentDocuments);
       } else {

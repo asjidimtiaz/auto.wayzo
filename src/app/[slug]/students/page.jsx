@@ -167,7 +167,7 @@ export default function StudentsPage() {
       const res = await api.contracts.generate(studentId);
       if (res.success) {
         notify.success('Contrat généré');
-        window.open(res.path, '_blank');
+        window.open(`/api/files/view?path=${encodeURIComponent(res.path)}`, '_blank');
       }
     } catch {
       notify.error('Erreur lors de la génération du contrat');

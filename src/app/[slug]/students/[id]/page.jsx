@@ -435,24 +435,12 @@ export default function StudentDetailPage() {
         prependDocument(res.document);
         notify.success('Document généré avec succès');
         
-        // Finalize the URL and filename if path exists
         const path = res.path || res.url;
         if (path) {
-          const rawPath = path.startsWith('/') ? path : `/${path}`;
-          const fileName = rawPath.split('/').pop();
-          const finalUrl = encodeURI(rawPath);
-          
-          // Trigger download
-          const a = document.createElement('a');
-          a.style.display = 'none';
-          a.href = finalUrl;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          
-          setTimeout(() => {
-            document.body.removeChild(a);
-          }, 100);
+          await handleDocumentAction(
+            res.document || { file_path: path, name: path.split('/').pop() },
+            'download'
+          );
         }
         
         await load();
@@ -476,14 +464,10 @@ export default function StudentDetailPage() {
         notify.success('Contrat d\'avancement généré');
         const path = res.path || res.url;
         if (path) {
-          const rawPath = path.startsWith('/') ? path : `/${path}`;
-          const finalUrl = encodeURI(rawPath);
-          const a = document.createElement('a');
-          a.href = finalUrl;
-          a.download = rawPath.split('/').pop();
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
+          await handleDocumentAction(
+            res.document || { file_path: path, name: path.split('/').pop() },
+            'download'
+          );
         }
         
         // Targeted refresh for documents to ensure they show up immediately

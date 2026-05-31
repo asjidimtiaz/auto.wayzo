@@ -9,21 +9,6 @@ import Button from '@/components/Button';
 import StatCard from '@/components/StatCard';
 import { formatDate } from '@/lib/utils';
 
-const MOCK_STUDENTS = [
-  { id: 'm1', full_name: 'Anouar Kaiter', cin: 'K12345', phone: '0612345678', license_type: 'B', status: 'En formation' },
-  { id: 'm2', full_name: 'Fatima Zahra', cin: 'F98765', phone: '0676543210', license_type: 'B', status: 'En formation' },
-  { id: 'm3', full_name: 'Ahmed Touzani', cin: 'A45612', phone: '0655443322', license_type: 'A', status: 'En formation' },
-  { id: 'm4', full_name: 'Sanaa Mansouri', cin: 'S78945', phone: '0688776655', license_type: 'C', status: 'En formation' },
-  { id: 'm5', full_name: 'Said Ait Taleb Ali', cin: 'T15975', phone: '0642956034', license_type: 'D', status: 'En formation' },
-  { id: 'm6', full_name: 'Khadija Radi', cin: 'R35789', phone: '0699887766', license_type: 'B', status: 'En formation' },
-];
-
-const MOCK_ATTENDANCE = [
-  { student_id: 'm1', time_in: '09:00' },
-  { student_id: 'm2', time_in: '09:15' },
-  { student_id: 'm3', time_in: '09:30' },
-];
-
 export default function PresencesAbsencesPage() {
   const { slug } = useParams();
   const router = useRouter();
@@ -46,11 +31,11 @@ export default function PresencesAbsencesPage() {
       const realStudents = Array.isArray(s) ? s.filter(st => st.status === 'En formation') : [];
       const realAttendance = Array.isArray(a) ? a : [];
       
-      setStudents([...realStudents, ...MOCK_STUDENTS]);
-      setTodayAttendance([...realAttendance, ...MOCK_ATTENDANCE]);
+      setStudents(realStudents);
+      setTodayAttendance(realAttendance);
     } catch {
-      setStudents(MOCK_STUDENTS);
-      setTodayAttendance(MOCK_ATTENDANCE);
+      setStudents([]);
+      setTodayAttendance([]);
     } finally {
       setLoading(false);
     }

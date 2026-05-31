@@ -1724,6 +1724,38 @@ async function getDashboardStats(autoEcoleId, options = {}) {
     getTodayStages(autoEcoleId),
   ]);
 
+  // Revenue (registration based) split by vehicle category: Moto = permis A,
+  // Voiture = permis B. Other license types are excluded from the per-category
+  // benefit (they still count in the global figures).
+  const regRevByCatSQL = (cond) => `
+    SELECT CASE WHEN s.license_type = 'A' THEN 'moto' WHEN s.license_type = 'B' THEN 'voiture' ELSE 'other' END AS category,
+      COALESCE(SUM(CASE WHEN s.total_price = 0 AND o.price IS NOT NULL THEN o.price ELSE s.total_price END), 0) AS revenue
+    FROM students s LEFT JOIN offers o ON s.offer_id = o.id
+    WHERE s.auto_ecole_id = $1 AND ${cond}
+    GROUP BY category
+  `;
+  // Manual expenses grouped by their group_name (Moto / Voiture / Administration / ...).
+  const expByGroupSQL = (cond) => `
+    SELECT group_name AS category, COALESCE(SUM(amount), 0) AS total
+    FROM expenses
+    WHERE tenant_id = $1 AND ${cond}
+    GROUP BY group_name
+  `;
+
+  const [
+    todayRevByCat, weekRevByCat, monthRevByCat, totalRevByCat,
+    todayExpByGroup, weekExpByGroup, monthExpByGroup, totalExpByGroup,
+  ] = await Promise.all([
+    query(regRevByCatSQL('s.registration_date = $2'), [autoEcoleId, todayStr]),
+    query(regRevByCatSQL('s.registration_date >= $2 AND s.registration_date < $3'), [autoEcoleId, weekStartStr, nextWeekStartStr]),
+    query(regRevByCatSQL('s.registration_date >= $2 AND s.registration_date < $3'), [autoEcoleId, monthStart, nextMonthStart]),
+    query(regRevByCatSQL('TRUE'), [autoEcoleId]),
+    query(expByGroupSQL('date = $2'), [autoEcoleId, todayStr]),
+    query(expByGroupSQL('date >= $2 AND date < $3'), [autoEcoleId, weekStartStr, nextWeekStartStr]),
+    query(expByGroupSQL('date >= $2 AND date < $3'), [autoEcoleId, monthStart, nextMonthStart]),
+    query(expByGroupSQL('TRUE'), [autoEcoleId]),
+  ]);
+
   // Parse license costs
   let licenseCosts = {};
   if (settingsRow && settingsRow.license_costs) {
@@ -1805,6 +1837,42 @@ async function getDashboardStats(autoEcoleId, options = {}) {
   const monthStudentStats = computeStudentPeriodStats(monthlyStudentSummaryRow, monthlyStudentCounts);
   const totalStudentStats = computeStudentPeriodStats(totalStudentSummaryRow, studentCountsRow);
 
+  // Benefit per vehicle category. Revenue is derived automatically from each
+  // student's license type (A => Moto, B => Voiture). Expenses are the Moto /
+  // Voiture expense groups plus per-license student costs. Shared
+  // "Administration" expenses are intentionally excluded here and remain only in
+  // the global benefit figure.
+  function computeCategoryStats(revRows, expRows, studentCostsByLicense) {
+    const motoRevenue = parseFloat(revRows.find(r => r.category === 'moto')?.revenue || 0);
+    const voitureRevenue = parseFloat(revRows.find(r => r.category === 'voiture')?.revenue || 0);
+
+    let motoExpenses = 0;
+    let voitureExpenses = 0;
+    (expRows || []).forEach(r => {
+      const amt = parseFloat(r.total || 0);
+      if (r.category === 'Moto') motoExpenses += amt;
+      else if (r.category === 'Voiture') voitureExpenses += amt;
+      // Administration / other groups are excluded from per-category benefit.
+    });
+
+    // Per-license student costs: only A => Moto, only B => Voiture.
+    const costs = studentCostsByLicense || {};
+    motoExpenses += parseFloat(costs.A || 0);
+    voitureExpenses += parseFloat(costs.B || 0);
+
+    return {
+      moto: { revenue: motoRevenue, expenses: motoExpenses, profit: motoRevenue - motoExpenses },
+      voiture: { revenue: voitureRevenue, expenses: voitureExpenses, profit: voitureRevenue - voitureExpenses },
+    };
+  }
+
+  const categoryPeriods = {
+    today: computeCategoryStats(todayRevByCat, todayExpByGroup, todayStudentStats.studentCostsByLicense),
+    week: computeCategoryStats(weekRevByCat, weekExpByGroup, weekStudentStats.studentCostsByLicense),
+    month: computeCategoryStats(monthRevByCat, monthExpByGroup, monthStudentStats.studentCostsByLicense),
+    total: computeCategoryStats(totalRevByCat, totalExpByGroup, totalStudentStats.studentCostsByLicense),
+  };
+
   return {
     totalStudents: parseInt(totalRow.count),
     activeStudents: parseInt(activeRow.count),
@@ -1837,6 +1905,7 @@ async function getDashboardStats(autoEcoleId, options = {}) {
       month: monthStudentStats,
       total: totalStudentStats,
     },
+    categoryPeriods,
     selectedDate: todayStr,
 
     pendingPayments: parseInt(pendingRow.count),
