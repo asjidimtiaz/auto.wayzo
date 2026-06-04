@@ -745,7 +745,7 @@ export default function StudentDetailPage() {
                 <Button size="sm" variant="success" onClick={async () => {
                    if (window.confirm('Voulez-vous marquer ce permis comme obtenu ?')) {
                       try {
-                         await api.students.update(id, { license_obtained: true, status: 'Permis obtenu' });
+                         await api.students.markLicenseObtained(id, student.license_type, today());
                          notify.success('Statut mis à jour avec succès');
                          load();
                       } catch {

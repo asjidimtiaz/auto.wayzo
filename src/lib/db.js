@@ -36,6 +36,12 @@ async function resetPool() {
   }
 }
 
+async function closeDb() {
+  initPromise = null;
+  initComplete = false;
+  await resetPool();
+}
+
 function isConnectionError(err) {
   return ['ECONNRESET', 'ECONNREFUSED', 'EPIPE', 'ETIMEDOUT', 'EACCES'].includes(err?.code)
     || /Connection terminated|Connection ended|Client has encountered a connection error/i.test(err?.message || '');
@@ -2001,6 +2007,9 @@ async function checkAndGenerateMonthlyExpenses(autoEcoleId) {
   const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
   const monthLockKey = parseInt(currentMonth.replace('-', ''), 10);
   const today = new Date().toISOString().split('T')[0];
+  const [currentYear, currentMonthNumber] = currentMonth.split('-').map(Number);
+  const previousMonthDate = new Date(Date.UTC(currentYear, currentMonthNumber - 2, 1));
+  const previousMonth = previousMonthDate.toISOString().substring(0, 7);
 
   return withTransaction(async (client) => {
     await client.query('SELECT pg_advisory_xact_lock($1::integer, $2::integer)', [autoEcoleId, monthLockKey]);
@@ -2012,7 +2021,7 @@ async function checkAndGenerateMonthlyExpenses(autoEcoleId) {
 
     let generated = 0;
     for (const item of recurringResult.rows) {
-      const startMonth = item.last_generated_month || currentMonth;
+      const startMonth = item.last_generated_month || previousMonth;
       if (startMonth === currentMonth) continue;
 
       let [lastYear, lastMonth] = startMonth.split('-').map(Number);
@@ -2087,7 +2096,7 @@ async function getExpenseStats(tenantId) {
 }
 
 module.exports = {
-  getDb, initDb, query, withTransaction,
+  getDb, initDb, closeDb, query, withTransaction,
   getAdminByUsername,
   getAllAutoEcoles, getAutoEcoleById, getAutoEcoleBySlug, createAutoEcole, updateAutoEcole, deleteAutoEcole,
   getAdminsByAutoEcole, createTenantAdmin, updateTenantAdminPassword, deleteTenantAdmin,
