@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 const NotificationContext = createContext();
 
@@ -44,15 +44,15 @@ export function NotificationProvider({ children }) {
     }, duration);
   }, []);
 
-  const notify = useCallback(
-    {
-      success: (msg) => addNotification(msg, 'success'),
-      error:   (msg) => addNotification(msg, 'error'),
-      info:    (msg) => addNotification(msg, 'info'),
-      warning: (msg) => addNotification(msg, 'warning'),
-    },
-    [addNotification]
-  );
+  // useMemo (not useCallback) is correct for memoizing an object value.
+  // useCallback(object, deps) silently returns a NEW object reference every render,
+  // making the context value unstable and causing all consumers to re-render on every keystroke.
+  const notify = useMemo(() => ({
+    success: (msg) => addNotification(msg, 'success'),
+    error:   (msg) => addNotification(msg, 'error'),
+    info:    (msg) => addNotification(msg, 'info'),
+    warning: (msg) => addNotification(msg, 'warning'),
+  }), [addNotification]);
 
   const dismiss = useCallback((id) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));

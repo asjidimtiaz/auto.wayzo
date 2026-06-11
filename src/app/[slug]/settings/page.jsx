@@ -115,16 +115,11 @@ export default function SettingsPage() {
     }
   }
 
-  const Section = ({ title, icon, children }) => (
-    <Card className="mb-6" title={title} icon={icon}>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">{children}</div>
-    </Card>
-  );
-
-  const Field = ({ label, k, type = 'text', full }) => (
-    <div className={full ? 'md:col-span-2' : ''}>
+  // Field renderer — uses inline JSX directly (not a nested component) to avoid remount on each keystroke
+  const renderField = (label, k, { type = 'text', full = false } = {}) => (
+    <div key={k} className={full ? 'md:col-span-2' : ''}>
       <label className="form-label">{label}</label>
-      <input type={type} {...F(k)} className="form-input" />
+      <input type={type} {...F(k)} className="form-input" autoComplete="off" />
     </div>
   );
 
@@ -165,27 +160,33 @@ export default function SettingsPage() {
         </Card>
 
         {/* General info */}
-        <Section title="Informations Générales" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>}>
-          <Field label="Nom de l'École *" k="school_name" full />
-          <Field label="Adresse" k="address" full />
-          <Field label="Ville" k="city" />
-          <Field label="Téléphone" k="phone" />
-          <Field label="GSM" k="gsm" />
-          <Field label="Email" k="email" type="email" />
-          <Field label="Fax" k="fax" />
-          <Field label="Site Web / Référence" k="web_reference" />
-        </Section>
+        <Card className="mb-6">
+          <Card.Header title="Informations Générales" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            {renderField("Nom de l'École *", 'school_name', { full: true })}
+            {renderField('Adresse', 'address', { full: true })}
+            {renderField('Ville', 'city')}
+            {renderField('Téléphone', 'phone')}
+            {renderField('GSM', 'gsm')}
+            {renderField('Email', 'email', { type: 'email' })}
+            {renderField('Fax', 'fax')}
+            {renderField('Site Web / Référence', 'web_reference')}
+          </div>
+        </Card>
 
         {/* Admin / Legal */}
-        <Section title="Informations Légales" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>}>
-          <Field label="N° Agrément / Licence" k="license_number" />
-          <Field label="Registre de Commerce" k="commercial_register" />
-          <Field label="N° Patente (TP)" k="tp" />
-          <Field label="CNSS" k="cnss" />
-          <Field label="ICE" k="ice" />
-          <Field label="IF / Registre Fiscal" k="tax_register" />
-          <Field label="Capital" k="capital" />
-        </Section>
+        <Card className="mb-6">
+          <Card.Header title="Informations Légales" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            {renderField('N° Agrément / Licence', 'license_number')}
+            {renderField('Registre de Commerce', 'commercial_register')}
+            {renderField('N° Patente (TP)', 'tp')}
+            {renderField('CNSS', 'cnss')}
+            {renderField('ICE', 'ice')}
+            {renderField('IF / Registre Fiscal', 'tax_register')}
+            {renderField('Capital', 'capital')}
+          </div>
+        </Card>
 
         {/* Defaults */}
         <Card className="mb-6">

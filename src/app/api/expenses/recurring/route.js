@@ -8,14 +8,15 @@ export async function GET(req) {
   try {
     const ctx = await requireTenant(req);
     if (!ctx) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    await db.checkAndGenerateMonthlyExpenses(ctx.autoEcoleId);
+    const genResult = await db.checkAndGenerateMonthlyExpenses(ctx.autoEcoleId);
 
     const { searchParams } = new URL(req.url);
     if (searchParams.get('check')) {
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, generated: genResult?.generated || 0 });
     }
 
-    return NextResponse.json(await db.getRecurringExpenses(ctx.autoEcoleId));
+    const items = await db.getRecurringExpenses(ctx.autoEcoleId);
+    return NextResponse.json({ items, generated: genResult?.generated || 0 });
   } catch (err) {
     console.error('[recurring GET]', err);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });

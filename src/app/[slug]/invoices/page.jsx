@@ -16,6 +16,7 @@ import { formatDate, formatCurrency, today } from '@/lib/utils';
 const STATUS_OPTIONS = ['Émise', 'Payée', 'Annulée', 'En attente'];
 const STATUS_BADGE = { Payée: 'success', 'En attente': 'info', Annulée: 'danger', 'Émise': 'gray' };
 const METHOD_LABEL = { Cash: 'Espèces', Transfer: 'Virement', Cheque: 'Chèque', TPE: 'TPE' };
+const PAYMENT_METHODS = ['Cash', 'Transfer', 'Cheque', 'TPE'];
 
 export default function InvoicesPage() {
   const { slug } = useParams();
@@ -28,7 +29,7 @@ export default function InvoicesPage() {
   const [filterStatus, setFilterStatus] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ student_id: '', amount: '', issue_date: today(), notes: '' });
+  const [form, setForm] = useState({ student_id: '', amount: '', issue_date: today(), status: 'Payée', payment_method: 'Cash', notes: '' });
   const [saving, setSaving] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
@@ -85,10 +86,14 @@ export default function InvoicesPage() {
   async function handleSubmit(e) {
     e.preventDefault(); setSaving(true);
     try {
-      await api.invoices.create({ ...form, student_id: parseInt(form.student_id), amount: parseFloat(form.amount) });
+      await api.invoices.create({
+        ...form,
+        student_id: parseInt(form.student_id),
+        amount: parseFloat(form.amount)
+      });
       notify.success('Facture créée avec succès');
       setShowModal(false);
-      setForm({ student_id: '', amount: '', issue_date: today(), notes: '' });
+      setForm({ student_id: '', amount: '', issue_date: today(), status: 'Payée', payment_method: 'Cash', notes: '' });
       await load();
     } catch { notify.error('Erreur lors de la création'); }
     finally { setSaving(false); }
@@ -365,6 +370,24 @@ export default function InvoicesPage() {
                         {students.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
                      </select>
                    </div>
+                   {form.student_id && (() => {
+                     const s = students.find(x => x.id === parseInt(form.student_id));
+                     if (!s) return null;
+                     const remaining = parseFloat(s.total_price || 0) - parseFloat(s.paid_amount || 0);
+                     return (
+                       <div className="md:col-span-2 p-3 bg-accent-yellow/5 border border-accent-yellow/20 rounded-xl flex items-center justify-between animate-fadeIn">
+                         <div className="flex items-center gap-2">
+                           <div className="w-8 h-8 rounded-lg bg-accent-yellow/10 flex items-center justify-center">
+                             <svg className="w-4 h-4 text-accent-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                           </div>
+                           <span className="text-xs font-bold text-dark uppercase tracking-wider">Solde restant de l'étudiant</span>
+                         </div>
+                         <span className={`text-sm font-black ${remaining > 0 ? 'text-accent-red' : 'text-accent-green'}`}>
+                           {formatCurrency(remaining)}
+                         </span>
+                       </div>
+                     );
+                   })()}
                    <div>
                      <label className="form-label">Montant (MAD) *</label>
                      <input type="number" min="0" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required className="form-input font-bold text-dark" placeholder="0.00" />
@@ -373,6 +396,22 @@ export default function InvoicesPage() {
                      <label className="form-label">Date d'émission *</label>
                      <input type="date" value={form.issue_date} onChange={e => setForm(f => ({ ...f, issue_date: e.target.value }))} required className="form-input" />
                    </div>
+                   <div>
+                     <label className="form-label">Statut *</label>
+                     <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} required className="form-select">
+                        {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                     </select>
+                   </div>
+                   {form.status === 'Payée' ? (
+                     <div>
+                       <label className="form-label">Mode de paiement *</label>
+                       <select value={form.payment_method} onChange={e => setForm(f => ({ ...f, payment_method: e.target.value }))} required className="form-select">
+                          {PAYMENT_METHODS.map(m => <option key={m} value={m}>{METHOD_LABEL[m]}</option>)}
+                       </select>
+                     </div>
+                   ) : (
+                     <div className="hidden md:block"></div>
+                   )}
                 </div>
                 <div><label className="form-label">Notes</label><textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} className="form-textarea resize-none" placeholder="Détails de la facture..." /></div>
               </div>

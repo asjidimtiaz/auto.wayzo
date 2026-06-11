@@ -669,8 +669,10 @@ async function getAdminByUsername(username) {
     SELECT a.*, ae.slug
     FROM admins a
     LEFT JOIN auto_ecoles ae ON a.auto_ecole_id = ae.id
-    WHERE a.username = $1
-  `, [username]);
+    WHERE LOWER(a.username) = LOWER($1)
+    ORDER BY CASE WHEN a.username = $1 THEN 0 ELSE 1 END, a.id
+    LIMIT 1
+  `, [String(username || '').trim()]);
 }
 
 async function getAdminBySetupToken(token) {
@@ -976,6 +978,7 @@ async function getAllPayments(autoEcoleId, { limit = null, offset = 0 } = {}) {
 }
 
 async function deletePayment(id, autoEcoleId) {
+  await execute("UPDATE invoices SET status = 'Émise', payment_id = NULL WHERE payment_id = $1 AND auto_ecole_id = $2", [id, autoEcoleId]);
   return execute('DELETE FROM payments WHERE id = $1 AND auto_ecole_id = $2', [id, autoEcoleId]);
 }
 
@@ -1324,13 +1327,23 @@ async function generateInvoiceNumber(autoEcoleId) {
 
 async function createInvoice(autoEcoleId, data) {
   const invoiceNumber = await generateInvoiceNumber(autoEcoleId);
+  let paymentId = data.payment_id || null;
+
+  if (data.status === 'Payée' && !paymentId) {
+    const paymentRow = await queryOne(
+      'INSERT INTO payments (auto_ecole_id, student_id, amount, payment_method, payment_date, notes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+      [autoEcoleId, data.student_id, data.amount, data.payment_method || 'Cash', data.issue_date || new Date().toISOString().split('T')[0], `Paiement pour facture ${invoiceNumber}`]
+    );
+    paymentId = paymentRow.id;
+  }
+
   const row = await queryOne(`
     INSERT INTO invoices (auto_ecole_id, invoice_number, student_id, payment_id, amount, issue_date, due_date, status, notes)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id
   `, [
-    autoEcoleId, invoiceNumber, data.student_id, data.payment_id || null,
+    autoEcoleId, invoiceNumber, data.student_id, paymentId,
     data.amount, data.issue_date || new Date().toISOString().split('T')[0],
-    data.due_date || null, data.status || 'Émise', data.notes || null,
+    data.due_date || data.issue_date || new Date().toISOString().split('T')[0], data.status || 'Émise', data.notes || null,
   ]);
   return { id: row.id, invoice_number: invoiceNumber };
 }
@@ -1363,10 +1376,30 @@ async function getAllInvoices(autoEcoleId, { limit = null, offset = 0 } = {}) {
 }
 
 async function updateInvoiceStatus(id, autoEcoleId, status) {
-  return execute('UPDATE invoices SET status = $1 WHERE id = $2 AND auto_ecole_id = $3', [status, id, autoEcoleId]);
+  const invoice = await getInvoiceById(id, autoEcoleId);
+  if (!invoice) throw new Error('Facture non trouvée');
+
+  let paymentId = invoice.payment_id;
+
+  if (status === 'Payée' && !paymentId) {
+    const paymentRow = await queryOne(
+      'INSERT INTO payments (auto_ecole_id, student_id, amount, payment_method, payment_date, notes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+      [autoEcoleId, invoice.student_id, invoice.amount, 'Cash', invoice.issue_date || new Date().toISOString().split('T')[0], `Paiement pour facture ${invoice.invoice_number}`]
+    );
+    paymentId = paymentRow.id;
+  } else if (status !== 'Payée' && paymentId) {
+    await execute('DELETE FROM payments WHERE id = $1 AND auto_ecole_id = $2', [paymentId, autoEcoleId]);
+    paymentId = null;
+  }
+
+  return execute('UPDATE invoices SET status = $1, payment_id = $2 WHERE id = $3 AND auto_ecole_id = $4', [status, paymentId, id, autoEcoleId]);
 }
 
 async function deleteInvoice(id, autoEcoleId) {
+  const invoice = await getInvoiceById(id, autoEcoleId);
+  if (invoice && invoice.payment_id) {
+    await execute('DELETE FROM payments WHERE id = $1 AND auto_ecole_id = $2', [invoice.payment_id, autoEcoleId]);
+  }
   return execute('DELETE FROM invoices WHERE id = $1 AND auto_ecole_id = $2', [id, autoEcoleId]);
 }
 
@@ -1730,14 +1763,15 @@ async function getDashboardStats(autoEcoleId, options = {}) {
     getTodayStages(autoEcoleId),
   ]);
 
-  // Revenue (registration based) split by vehicle category: Moto = permis A,
-  // Voiture = permis B. Other license types are excluded from the per-category
-  // benefit (they still count in the global figures).
-  const regRevByCatSQL = (cond) => `
+  // Revenue (payment based) split by vehicle category: Moto = permis A,
+  // Voiture = permis B. Revenue is the sum of payments actually collected during
+  // the period, attributed to the paying student's license type. Other license
+  // types are excluded from the per-category benefit (they still count globally).
+  const payRevByCatSQL = (cond) => `
     SELECT CASE WHEN s.license_type = 'A' THEN 'moto' WHEN s.license_type = 'B' THEN 'voiture' ELSE 'other' END AS category,
-      COALESCE(SUM(CASE WHEN s.total_price = 0 AND o.price IS NOT NULL THEN o.price ELSE s.total_price END), 0) AS revenue
-    FROM students s LEFT JOIN offers o ON s.offer_id = o.id
-    WHERE s.auto_ecole_id = $1 AND ${cond}
+      COALESCE(SUM(p.amount), 0) AS revenue
+    FROM payments p JOIN students s ON p.student_id = s.id
+    WHERE p.auto_ecole_id = $1 AND ${cond}
     GROUP BY category
   `;
   // Manual expenses grouped by their group_name (Moto / Voiture / Administration / ...).
@@ -1752,10 +1786,10 @@ async function getDashboardStats(autoEcoleId, options = {}) {
     todayRevByCat, weekRevByCat, monthRevByCat, totalRevByCat,
     todayExpByGroup, weekExpByGroup, monthExpByGroup, totalExpByGroup,
   ] = await Promise.all([
-    query(regRevByCatSQL('s.registration_date = $2'), [autoEcoleId, todayStr]),
-    query(regRevByCatSQL('s.registration_date >= $2 AND s.registration_date < $3'), [autoEcoleId, weekStartStr, nextWeekStartStr]),
-    query(regRevByCatSQL('s.registration_date >= $2 AND s.registration_date < $3'), [autoEcoleId, monthStart, nextMonthStart]),
-    query(regRevByCatSQL('TRUE'), [autoEcoleId]),
+    query(payRevByCatSQL('p.payment_date = $2'), [autoEcoleId, todayStr]),
+    query(payRevByCatSQL('p.payment_date >= $2 AND p.payment_date < $3'), [autoEcoleId, weekStartStr, nextWeekStartStr]),
+    query(payRevByCatSQL('p.payment_date >= $2 AND p.payment_date < $3'), [autoEcoleId, monthStart, nextMonthStart]),
+    query(payRevByCatSQL('TRUE'), [autoEcoleId]),
     query(expByGroupSQL('date = $2'), [autoEcoleId, todayStr]),
     query(expByGroupSQL('date >= $2 AND date < $3'), [autoEcoleId, weekStartStr, nextWeekStartStr]),
     query(expByGroupSQL('date >= $2 AND date < $3'), [autoEcoleId, monthStart, nextMonthStart]),

@@ -21,7 +21,9 @@ export async function POST(req) {
     }
 
     await initDb();
-    const { username, password } = await req.json();
+    const body = await req.json();
+    const username = String(body.username || '').trim();
+    const password = String(body.password || '');
 
     if (!username || !password) {
       return NextResponse.json({ error: 'Nom d\'utilisateur et mot de passe requis' }, { status: 400 });

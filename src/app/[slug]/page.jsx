@@ -146,7 +146,12 @@ export default function DashboardPage() {
     profit: period === 'month' ? (stats?.currentMonthProfit ?? stats?.profit) : stats?.profit,
   };
 
-  const periodRevenue = currentPeriodStats.revenue;
+  // Revenue must reflect payments actually received during the period (cash in),
+  // NOT the full enrollment price of newly registered students. Adding a student
+  // only records what they owe; revenue grows as each payment is collected.
+  const periodRevenue = accountingPeriodStats.revenue
+    ?? (period === 'month' ? (stats?.monthlyRevenue ?? stats?.totalRevenue) : stats?.totalRevenue)
+    ?? 0;
   const periodFixedExpenses = accountingPeriodStats.fixed ?? 0;
   const periodVariableExpenses = accountingPeriodStats.variable ?? currentPeriodStats.expenses ?? 0;
   const periodManualVariableExpenses = accountingPeriodStats.manualVariable ?? Math.max(periodVariableExpenses - (currentPeriodStats.studentCosts ?? 0), 0);
